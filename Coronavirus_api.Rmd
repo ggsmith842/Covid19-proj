@@ -1,0 +1,92 @@
+---
+title: "Corona"
+author: "Grant Smith"
+date: "3/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,message=FALSE}
+library(tidyverse)
+library(jsonlite)
+library(httr)
+library(plotly)
+library(lubridate)
+library(rromeo)
+```
+
+
+
+```{r}
+
+corona_api <-GET(url ="https://covid-19-coronavirus-statistics.p.rapidapi.com/v1/stats",
+                 add_headers("X-RapidApi-Key" = paste(Sys.getenv("Rapid_KEY"))),
+                 query = list(
+                   country="US"
+                 )
+  
+)
+stop_for_status(corona_api)
+json<-content(corona_api,as = 'text',encoding="UTF-8")
+
+api_data<-fromJSON(json)
+head(api_data)
+```
+
+
+
+```{r}
+#Data downloaded/updates daily
+setwd("C:/Users/grant/Downloads")
+cor_dat<-read_csv("time_series-ncov-Confirmed.csv")
+```
+
+US
+```{r}
+head(cor_dat)
+US_dat<-cor_dat %>% select(`Country/Region`,Date,Value) %>% slice(-1) %>% 
+  filter(`Country/Region`=='US') %>%  arrange(Date)
+
+US_dat<-US_dat %>% mutate(Date=ymd(Date)) 
+
+US_count<-US_dat %>% group_by(Date) %>% summarise(count=sum(as.numeric(Value)))
+
+US_count %>% plot_ly(x=~Date,y=~count,mode="lines", fill='tonexty')
+```
+
+```{r}
+#add percent change between days
+US_stats<- US_count %>%  mutate(`% change`=100*(lead(count)-count)/count)
+US_stats 
+```
+
+```{r}
+US_stats %>%  plot_ly(x=~Date,y=~`% change`,type = "scatter", mode="markers",fill='tonexty')
+```
+
+
+Italy
+```{r}
+Ita_dat<-cor_dat %>% select(`Country/Region`,Date,Value) %>% slice(-1) %>% mutate(Date=ymd(Date)) %>% 
+  filter(`Country/Region`=='Italy') %>%  arrange(Date)
+
+
+Ita_count<-Ita_dat %>% group_by(Date) %>% summarise(count=sum(as.numeric(Value)))
+
+Ita_count %>% plot_ly(x=~Date,y=~count,type="scatter",mode="lines",color = 'orange', fill='tozeroy',fillcolor = 'rgba(255, 212, 96, 0.5)')
+```
+
+```{r}
+#add percent change between days
+Ita_stats<- Ita_count %>%  mutate(`% change`=100*(lead(count)-count)/count) %>% na.omit()  %>% slice(-1)
+
+Ita_stats 
+```
+
+```{r}
+Ita_stats %>%  plot_ly(x=~Date,y=~`% change`,type = "scatter", mode="markers",color = 'orange',fill='tonexty',fillcolor = 'rgba(255, 212, 96, 0.5)')
+```
+
