@@ -20,10 +20,9 @@ library(lubridate)
 
 
 ```{r}
-KEY<-"7231987451msh4ef6d7dc0eca129p135014jsn7084302f4672"
 
 corona_api <-GET(url ="https://covid-19-coronavirus-statistics.p.rapidapi.com/v1/stats",
-                 add_headers("X-RapidApi-Key" = paste(KEY)),
+                 add_headers("X-RapidApi-Key" = paste(Rapid_KEY)),
                  query = list(
                    country="US"
                  )
