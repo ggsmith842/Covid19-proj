@@ -17,6 +17,7 @@ library(plotly)
 library(lubridate)
 library(rromeo)
 library(DT)
+library(leaflet)
 ```
 
 ```{r,message=FALSE}
@@ -37,7 +38,10 @@ api_data <- fromJSON(json)
 api_data <- api_data$data$covid19Stats
 
 api_data <- api_data %>% mutate(total = confirmed - deaths - recovered)
+
+api_data
 ```
+
 
 
 ```{r,warning=FALSE,message=FALSE}
@@ -107,11 +111,10 @@ subplot(Globe_Rcvd_fig,Globe_Death_fig)
 ```{r,message=FALSE,warning=FALSE}
 
 US_Cdat <- conf_dat %>%
-  select(`Country/Region`, Date, Value) %>%
   slice(-1) %>%
   filter(`Country/Region` == "US") %>%
   arrange(Date) %>%
-  mutate(Date = ymd(Date))
+  mutate(Date = ymd(Date),Lat=as.numeric(Lat),Long=as.numeric(Long))
 US_Ddat <- death_dat %>%
   select(`Country/Region`, Date, Value) %>%
   slice(-1) %>%
@@ -134,8 +137,25 @@ US_dat <- US_dat %>%
 US_count <- US_dat %>%
   group_by(Date) %>%
   summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
+```
 
 
+```{r}
+#map
+US_Cdat_geo<-US_Cdat %>%  group_by(`Province/State`) %>% summarise(Count=sum(as.numeric(Value)))
+
+US_Cdat_geo<-US_Cdat %>% select(`Province/State`,Lat,Long) %>% left_join(.,US_Cdat_geo)
+
+
+leaflet(US_Cdat_geo) %>% 
+  setView(lng=-96.7265	,lat=38.5266	,zoom = 4.4) %>% 
+  addTiles() %>% 
+  addCircleMarkers(lng = US_Cdat$Long,lat = US_Cdat$Lat) 
+
+```
+
+
+```{r}
 US_count %>%
   plot_ly(x = ~Date, y = ~Total, mode = "lines", fill = "tonexty") %>%
   layout(
