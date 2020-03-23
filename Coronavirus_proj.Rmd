@@ -58,6 +58,49 @@ recvd_dat <- read_csv("time_series-ncov-Recovered.csv")
 * What is unemployment rate doing during all of this?
 
 <hr>
+#### Global 
+```{r}
+Global_Confirmed <- conf_dat %>%
+  select(`Country/Region`, Date, Value) %>%
+  slice(-1) %>%
+  arrange(Date) %>%
+  mutate(Date = ymd(Date))
+Global_Deaths <- death_dat %>%
+  select(`Country/Region`, Date, Value) %>%
+  slice(-1) %>%
+  arrange(Date) %>%
+  mutate(Date = ymd(Date))
+Global_Rcvd <- recvd_dat %>%
+  select(`Country/Region`, Date, Value) %>%
+  slice(-1) %>%
+  arrange(Date) %>%
+  mutate(Date = ymd(Date))
+
+Global_dat <- bind_cols(Global_Confirmed, Global_Rcvd[, 3], Global_Deaths[, 3])
+Global_dat <- Global_dat %>%
+  mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
+  select(-3:-5) %>%
+  mutate(Total = Confirmed - Recovered - Deaths)
+
+Global_count <- Global_dat %>%
+  group_by(Date) %>%
+  summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
+
+
+Global_count %>%
+  plot_ly(x = ~Date, y = ~Total, mode = "lines",line=list(color='green'), fill = "tonexty",fillcolor="lightgreen") %>%
+  layout(
+    title = "Global Coronavirus Active Cases"
+  )
+
+Globe_Rcvd_fig<-Global_count %>% 
+  plot_ly(x=~ Date,y=~Recovered,mode="lines",line=list(color='purple'),fill="tonexty",fillcolor='lightpurple')
+Globe_Death_fig<-Global_count %>% 
+  plot_ly(x=~ Date,y=~Deaths,mode="lines",line=list(color='red'),fill="tonexty",fillcolor='lightred')
+subplot(Globe_Rcvd_fig,Globe_Death_fig)
+```
+
+
 
 #### United States
 
@@ -141,11 +184,6 @@ US_stats %>%
 
 *ex.) On 2/08/2020 the number of active cases decreased from 11 to 8 as 3 patients had recovered from the virus. This resulted in a 27.3% decrease in active cases.*
 
-```{r}
-
-#linear trend in deaths vs recovery
-US_stats %>% plot_ly(x=~Recovered,y=~Deaths)
-```
 
 <hr>
 #### Italy
@@ -235,6 +273,13 @@ Ita_stats %>% plot_ly(x=~Recovered,y=~Deaths)
 ```
 
 ```{r}
+Ita_lm_fit<-(lm(Deaths~Recovered,Ita_stats) )
+```
 
+```{r}
+par(mfrow=c(2,2))
+plot(Ita_lm_fit)
+#indicates viotaion of normality and homoscedasticity
+#could try a transformation but data seems to violate 3/4 assumptions
 ```
 
