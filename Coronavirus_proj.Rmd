@@ -48,6 +48,15 @@ death_dat <- read_csv("time_series-ncov-Deaths.csv")
 recvd_dat <- read_csv("time_series-ncov-Recovered.csv")
 ```
 
+
+### Questions of Interest
+
+* can we confirm recovery rate?
+
+* Can we confirm the number of deaths per recovery is 7.47 (US)? 
+
+* What is unemployment rate doing during all of this?
+
 <hr>
 
 #### United States
@@ -133,11 +142,6 @@ US_stats %>%
 *ex.) On 2/08/2020 the number of active cases decreased from 11 to 8 as 3 patients had recovered from the virus. This resulted in a 27.3% decrease in active cases.*
 
 ```{r}
-#can we confirm recovery rate?
-
-# 7.47 deaths per recovery(US) //can we test this hypothesis
-
-#what is unemployment rate doing during all of this.
 
 #linear trend in deaths vs recovery
 US_stats %>% plot_ly(x=~Recovered,y=~Deaths)
@@ -224,8 +228,13 @@ Ita_stats %>%
 *Note:a decrease in percent change does not mean the number of active cases is lower than on the previous day. Only a negative percent value indicates a decreases in active cases*
 
 
+#### Data Analysis
 ```{r}
 #linear trend in deaths vs recovery
 Ita_stats %>% plot_ly(x=~Recovered,y=~Deaths)
+```
+
+```{r}
+
 ```
 
