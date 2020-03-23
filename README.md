@@ -13,9 +13,9 @@ Additionally, this project will look for trends in the data and try to create a 
  
 **Collaborators**
 
- >ggsmith842\ 
- >jaymie18\ 
- >chriztopherton 
+ > ggsmith842<br> 
+ > jaymie18<br>
+ > chriztopherton 
 
 **Data References**
 
