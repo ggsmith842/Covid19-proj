@@ -104,6 +104,11 @@ US_count %>%
 
 <br>
 ```{r}
+#add recovery vs death overlay
+```
+
+<br>
+```{r}
 # add percent change between days
 US_stats <- US_count %>% mutate(`% change` = 100 * (lead(Total) - Total) / Total)
 datatable(US_stats)
@@ -127,6 +132,17 @@ US_stats %>%
 * As of March 18, there has been a decrease in the percent change, implying the number of new cases in slowing.
 
 *ex.) On 2/08/2020 the number of active cases decreased from 11 to 8 as 3 patients had recovered from the virus. This resulted in a 27.3% decrease in active cases.*
+
+```{r}
+#can we confirm recovery rate?
+
+# 7.47 deaths per recovery(US) //can we test this hypothesis
+
+#what is unemployment rate doing during all of this.
+
+#linear trend in deaths vs recovery
+US_stats %>% plot_ly(x=~Recovered,y=~Deaths)
+```
 
 <hr>
 #### Italy
