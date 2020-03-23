@@ -13,8 +13,8 @@ Additionally, this project will look for trends in the data and try to create a 
  
 **Collaborators**
 
->ggsmith842
->jaymie18 
+>ggsmith842\n
+>jaymie18\n 
 >chriztopherton 
 
 
