@@ -92,7 +92,6 @@ US_count %>%
 ```
 
 
-
 **Number of Cases Plot**
 
 * The above plot shows the active number of cases in the US by date. This number is the confirmed number of cases minus the number of recovered cases and cases resulting in 
@@ -223,3 +222,10 @@ Ita_stats %>%
 * Since the February 20 spike the percent change has been lower indicating a lower number of new cases. 
 
 *Note:a decrease in percent change does not mean the number of active cases is lower than on the previous day. Only a negative percent value indicates a decreases in active cases*
+
+
+```{r}
+#linear trend in deaths vs recovery
+Ita_stats %>% plot_ly(x=~Recovered,y=~Deaths)
+```
+
