@@ -1,7 +1,21 @@
 # Covid19-proj
 
-This project provides visualizations tracking the changing status of COVID-19 cases. 
+This project provides visualizations tracking the changing status of COVID-19 cases. Visualizations will include current case trends, overlay for different countries, and comparision to previous case rates in other similar infectious diseases.
 
+Additionally, this project will look for trends in the data and try to create a predictive model based on avaliable data. 
+
+ #### Potential Methods
+ * Linear Regression
+ * Time Series Forecasting
+ 
+ 
+ <hr>
+ 
+**Collaborators**
+
+>ggsmith842
+>jaymie18 
+>chriztopherton 
 
 
 **Data References**
