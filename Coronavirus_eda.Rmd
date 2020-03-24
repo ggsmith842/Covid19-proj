@@ -51,14 +51,6 @@ recvd_dat <- read_csv("time_series-ncov-Recovered.csv")
 ```
 
 
-### Questions of Interest
-
-* can we confirm recovery rate?
-
-* Can we confirm the number of deaths per recovery is 7.47 (US)? 
-
-* What is unemployment rate doing during all of this?
-
 <hr>
 #### Global 
 ```{r}
