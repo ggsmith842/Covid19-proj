@@ -26,7 +26,7 @@ Additionally, this project will look for trends in the data and try to create a 
 
 **Generative Approaches**
 > Predicting growth by assuming new data is generated exponentially, we try to:
- - Linear Regression is used to model exponential growth, in the form of y = a +b *x --> logx(t) = log(x_0) + log(b) +t,
+ - Linear Regression is used to model exponential growth, in the form of $$y = a +b *x --> logx(t) = log(x_0) + log(b) +t$$,
  - where x(t) is the given number of cases at any given time t, x_0 is the initial number of cases at the beginning of time, b is the growth factor, number of people infected by a single sick person
 
 
