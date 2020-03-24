@@ -16,9 +16,11 @@ ui <- ui <- dashboardPage(
     dashboardBody(
         
         fluidRow(
+            infoBoxOutput("ConfirmedCases"),
+            infoBoxOutput("Mortalities"),
             box("Barchart",
                 plotlyOutput("plot1",height = 500)),
-            infoBoxOutput("totalcasesUS")
+            
                  )
     )
 )
@@ -39,20 +41,28 @@ server <- function(input, output) {
     api_data <- fromJSON(json)
     
     api_data <- api_data$data$covid19Stats
+    api_data <- api_data %>% mutate(total = confirmed - deaths - recovered) 
     
-    api_data <- api_data %>%
-        mutate(total = confirmed - deaths - recovered) %>%
+    
+    api_data_byProvince <- api_data %>%
         group_by(province) %>%
         summarise(total = sum(total))
-
-    output$totalcasesUS <-renderInfoBox({
-        infoBox("TotalCases",sum(api_data$total))
+    
+    
+    output$ConfirmedCases <-renderInfoBox({
+        infoBox("ConfirmedCases",sum(api_data$confirmed),
+                 color="yellow",fill=TRUE)
+    })
+    
+    output$Mortalities <-renderInfoBox({
+        infoBox("Mortalities",sum(api_data$deaths),
+                color="red",fill=TRUE)
     })
     
     output$plot1 <-renderPlotly({
-        plot_ly(x=api_data$total,
-                y=~api_data$province,
-                color=~api_data$province)
+        plot_ly(x=api_data_byProvince$total,
+                y=~api_data_byProvince$province,
+                color=~api_data_byProvince$province)
         
     })
     

@@ -36,17 +36,20 @@ api_data <- fromJSON(json)
 
 ```{r,message=FALSE}
 api_data <- api_data$data$covid19Stats
+api_data <- api_data %>% mutate(total = confirmed - deaths - recovered) 
 
-api_data <- api_data %>%
-  mutate(total = confirmed - deaths - recovered) %>%
+
+api_data_byProvince <- api_data %>%
   group_by(province) %>%
   summarise(total = sum(total))
+
+sum(api_data$recovered)
 ```
 
 #### Current Counts (US)
 
 ```{r,message=FALSE,warning=FALSE}
-api_data %>% plot_ly(x = ~total, y = ~province, color = ~province)
+api_data_byProvince %>% plot_ly(x = ~total, y = ~province, color = ~province)
 ```
 
 ```{r}
