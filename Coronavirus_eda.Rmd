@@ -1,0 +1,293 @@
+---
+title: "COVID-19: Key Insights"
+author: "Grant Smith & Jaymie Tam"
+date: "3/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r,message=FALSE, warning=FALSE}
+library(tidyverse)
+library(jsonlite)
+library(httr)
+library(plotly)
+library(lubridate)
+library(rromeo)
+library(DT)
+library(leaflet)
+```
+
+```{r,message=FALSE}
+corona_api <- GET(
+  url = "https://covid-19-coronavirus-statistics.p.rapidapi.com/v1/stats",
+  add_headers("X-RapidApi-Key" = paste(Sys.getenv("Rapid_KEY"))),
+  query = list(
+    country = "US"
+  )
+)
+stop_for_status(corona_api)
+json <- content(corona_api, as = "text", encoding = "UTF-8")
+
+api_data <- fromJSON(json)
+```
+
+```{r,message=FALSE}
+api_data <- api_data$data$covid19Stats
+
+api_data <- api_data %>% mutate(total = confirmed - deaths - recovered)
+```
+
+
+
+```{r,warning=FALSE,message=FALSE}
+# Data downloaded/updates daily
+setwd("C:/Users/grant/Downloads")
+conf_dat <- read_csv("time_series-ncov-Confirmed.csv")
+death_dat <- read_csv("time_series-ncov-Deaths.csv")
+recvd_dat <- read_csv("time_series-ncov-Recovered.csv")
+```
+
+
+### Questions of Interest
+
+* can we confirm recovery rate?
+
+* Can we confirm the number of deaths per recovery is 7.47 (US)? 
+
+* What is unemployment rate doing during all of this?
+
+<hr>
+#### Global 
+```{r}
+Global_Confirmed <- conf_dat %>%
+  select(`Country/Region`, Date, Value) %>%
+  slice(-1) %>%
+  arrange(Date) %>%
+  mutate(Date = ymd(Date))
+Global_Deaths <- death_dat %>%
+  select(`Country/Region`, Date, Value) %>%
+  slice(-1) %>%
+  arrange(Date) %>%
+  mutate(Date = ymd(Date))
+Global_Rcvd <- recvd_dat %>%
+  select(`Country/Region`, Date, Value) %>%
+  slice(-1) %>%
+  arrange(Date) %>%
+  mutate(Date = ymd(Date))
+
+Global_dat <- bind_cols(Global_Confirmed, Global_Rcvd[, 3], Global_Deaths[, 3])
+Global_dat <- Global_dat %>%
+  mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
+  select(-3:-5) %>%
+  mutate(Total = Confirmed - Recovered - Deaths)
+
+Global_count <- Global_dat %>%
+  group_by(Date) %>%
+  summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
+
+
+Global_count %>%
+  plot_ly(x = ~Date, y = ~Total, mode = "lines",line=list(color='green'), fill = "tonexty",fillcolor="lightgreen") %>%
+  layout(
+    title = "Global Coronavirus Active Cases"
+  )
+
+Globe_Rcvd_fig<-Global_count %>% 
+  plot_ly(x=~ Date,y=~Recovered,mode="lines",line=list(color='purple'),fill="tonexty",fillcolor='lightpurple')
+Globe_Death_fig<-Global_count %>% 
+  plot_ly(x=~ Date,y=~Deaths,mode="lines",line=list(color='red'),fill="tonexty",fillcolor='lightred')
+subplot(Globe_Rcvd_fig,Globe_Death_fig)
+```
+
+
+#### United States
+
+```{r,message=FALSE,warning=FALSE}
+
+US_Cdat <- conf_dat %>%
+  slice(-1) %>%
+  filter(`Country/Region` == "US") %>%
+  arrange(Date) %>%
+  mutate(Date = ymd(Date),Lat=as.numeric(Lat),Long=as.numeric(Long))
+US_Ddat <- death_dat %>%
+  select(`Country/Region`, Date, Value) %>%
+  slice(-1) %>%
+  filter(`Country/Region` == "US") %>%
+  arrange(Date) %>%
+  mutate(Date = ymd(Date))
+US_Rdat <- recvd_dat %>%
+  select(`Country/Region`, Date, Value) %>%
+  slice(-1) %>%
+  filter(`Country/Region` == "US") %>%
+  arrange(Date) %>%
+  mutate(Date = ymd(Date))
+
+US_dat <- bind_cols(US_Cdat, US_Rdat[, 3], US_Ddat[, 3])
+
+US_dat <- US_dat %>%
+  mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
+  mutate(Total = Confirmed - Recovered - Deaths) %>% 
+  select(-6:-8)
+
+US_count <- US_dat %>%
+  group_by(Date) %>%
+  summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
+```
+
+
+```{r}
+#map
+library(leaflet.extras)
+US_Cdat_geo<-US_Cdat %>%  group_by(`Province/State`) %>% summarise(Count=sum(as.numeric(Value)))
+
+US_Cdat_geo<-US_Cdat_geo %>% select(`Province/State`,Lat,Long) %>% left_join(.,US_Cdat,by=Date)
+US_Cdat_geo
+
+leaflet(US_Cdat_geo) %>% 
+  setView(lng=-96.7265	,lat=38.5266	,zoom = 4.4) %>% 
+  addProviderTiles(providers$CartoDB.DarkMatter) %>% 
+  addHeatmap(
+    lng = ~Long,lat=~Lat,intensity=~Count,
+    blur=20,max=-0.05,radius=15)
+  # ) %>% 
+  # addPopups(lng=~Long,lat=~Lat,US_Cdat_geo$`Province/State`)
+  
+#my_data[!duplicated(my_data$Sepal.Width), ] remove duplicate rows
+```
+
+
+```{r}
+US_count %>%
+  plot_ly(x = ~Date, y = ~Total, mode = "lines", fill = "tonexty") %>%
+  layout(
+    title = "U.S. Coronavirus Cases"
+  )
+```
+
+
+**Number of Cases Plot**
+
+* The above plot shows the active number of cases in the US by date. This number is the confirmed number of cases minus the number of recovered cases and cases resulting in 
+  death of the patient.
+  
+* The plot shows exponential growth in the number of cases as the only noticeable trend.
+
+* As of March 21, there are 25.2k active cases in the U.S.
+
+<br>
+```{r}
+#add recovery vs death overlay
+```
+
+<br>
+```{r}
+# add percent change between days
+US_stats <- US_count %>% mutate(`% change` = 100 * (lead(Total) - Total) / Total)
+datatable(US_stats)
+```
+
+<br>
+```{r,warning=FALSE}
+US_stats %>%
+  plot_ly(x = ~Date, y = ~`% change`, type = "scatter", mode = "markers", fill = "tonexty") %>%
+  layout(title = "Percent Change in Total Active Cases")
+```
+
+**Description of Percent Change plot**
+
+* The Percent Change plot shows the change in number of active cases from the date listed to the next day. A positive percent change indicates the number of active cases 
+  increased, while a negative percent change in dicates the number of active cases is lower than it was on the previous day. 
+
+* Unlike the case count, the percent changes show a relatively flat trend with mior spikes. February 23 is the largest spike to date with a 360% increase. After this spike we 
+  see a steady increase in the percentage of active cases. This implies infection rates are higher than both recovery and mortality rates.
+
+* As of March 18, there has been a decrease in the percent change, implying the number of new cases in slowing.
+
+*ex.) On 2/08/2020 the number of active cases decreased from 11 to 8 as 3 patients had recovered from the virus. This resulted in a 27.3% decrease in active cases.*
+
+
+<hr>
+#### Italy
+```{r,warning=FALSE}
+Ita_Cdat <- conf_dat %>%
+  select(`Country/Region`, Date, Value) %>%
+  slice(-1) %>%
+  filter(`Country/Region` == "Italy") %>%
+  arrange(Date) %>%
+  mutate(Date = ymd(Date))
+
+Ita_Ddat <- death_dat %>%
+  select(`Country/Region`, Date, Value) %>%
+  slice(-1) %>%
+  filter(`Country/Region` == "Italy") %>%
+  arrange(Date) %>%
+  mutate(Date = ymd(Date))
+
+Ita_Rdat <- recvd_dat %>%
+  select(`Country/Region`, Date, Value) %>%
+  slice(-1) %>%
+  filter(`Country/Region` == "Italy") %>%
+  arrange(Date) %>%
+  mutate(Date = ymd(Date))
+
+Ita_dat <- bind_cols(Ita_Cdat, Ita_Rdat[, 3], Ita_Ddat[, 3])
+Ita_dat <- Ita_dat %>%
+  mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
+  select(-3:-5) %>%
+  mutate(Total = Confirmed - Recovered - Deaths)
+
+Ita_count <- Ita_dat %>%
+  group_by(Date) %>%
+  summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
+
+Ita_count %>%
+  plot_ly(x = ~Date, y = ~Total, type = "scatter", mode = "lines", color = "orange", fill = "tozeroy", fillcolor = "rgba(255, 212, 96, 0.5)") %>%
+  layout(
+    title = "Italian Coronavirus Cases"
+  )
+```
+
+**Number of Cases Plot**
+
+* The above plot shows the active number of cases in Italy by date. This number is the confirmed number of cases minus the number of recovered cases and cases resulting in 
+  death of the patient.
+  
+* The plot shows exponential growth in the number of cases as the only noticeable trend.
+
+* From March 11 March 12, there was no change in the number of cases reported. As of March 21, there are 42.7k active cases in Italy. 
+
+<br>
+```{r}
+# add percent change between days
+Ita_stats <- Ita_count %>%
+  mutate(`% change` = 100 * (lead(Total) - Total) / Total) %>%
+  na.omit() %>%
+  slice(-1)
+
+datatable(Ita_stats)
+```
+
+```{r,warning=FALSE,message=FALSE}
+Ita_stats %>%
+  plot_ly(x = ~Date, y = ~`% change`, type = "scatter", mode = "markers", color = "orange", fill = "tonexty", fillcolor = "rgba(255, 212, 96, 0.5)") %>%
+  layout(title = "Percent Change in Total Active Cases (Ita)")
+```
+
+**Description of Percent Change plot**
+
+* The Percent Change plot shows the change in number of active cases from the date listed to the next day. A positive percent change indicates the number of active cases 
+  increased, while a negative percent change in dicates the number of active cases is lower than it was on the previous day. 
+  
+* The percent change remained flat up until February 20 with the exception of a single spike of change between February 6 and 7. (The above datatable shows the exact details)
+
+* The spike at February 20 shows a 533% increase. This is most likely due to increased testing practices by health professionals.
+
+* Since the February 20 spike the percent change has been lower indicating a lower number of new cases. 
+
+*Note:a decrease in percent change does not mean the number of active cases is lower than on the previous day. Only a negative percent value indicates a decreases in active cases*
+
+
+
