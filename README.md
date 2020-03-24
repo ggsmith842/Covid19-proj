@@ -5,7 +5,8 @@ This project provides visualizations tracking the changing status of COVID-19 ca
 Additionally, this project will look for trends in the data and try to create a predictive model based on avaliable data. 
 
  #### Potential Methods
- * Linear Regression
+ * Linear Regression: used to model exponential growth, in the form of y = a +b *x --> logx(t) = log(x_0) + log(b) +t,
+ where x(t) is the given number of cases at any given time t, x_0 is the initial number of cases at the beginning of time, b is the growth factor, number of people infected by a single sick person
  * Time Series Forecasting
  
  
