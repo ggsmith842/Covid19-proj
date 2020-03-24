@@ -40,30 +40,35 @@ api_data <- api_data$data$covid19Stats
 api_data <- api_data %>% mutate(total = confirmed - deaths - recovered) %>% group_by(province) %>% summarise(total=sum(total))
 ```
 
-```{r}
+#### Current Counts (US)
+
+```{r,message=FALSE,warning=FALSE}
 api_data %>% plot_ly(x=~total,y=~province,color=~province)
 
 ```
+
 ```{r}
 api_data %>% summarise(total_confUS=sum(total))
 ```
 
+<hr>
 
+## Data updated as of March 22
 
 ```{r,warning=FALSE,message=FALSE}
 # Data downloaded/updates daily
-setwd("C:/Users/grant/Downloads")
+setwd("~/GitHub/Covid19-proj/Data")
 conf_dat <- read_csv("time_series-ncov-Confirmed.csv")
 death_dat <- read_csv("time_series-ncov-Deaths.csv")
 recvd_dat <- read_csv("time_series-ncov-Recovered.csv")
 ```
 
 
-<hr>
+
 #### Global 
 ```{r}
 Global_Confirmed <- conf_dat %>%
-  select(`Country/Region`, Date, Value) %>%
+  select(`Country/Region`, Date, Value,Lat,Long,`Province/State`) %>%
   slice(-1) %>%
   arrange(Date) %>%
   mutate(Date = ymd(Date))
@@ -81,10 +86,10 @@ Global_Rcvd <- recvd_dat %>%
 Global_dat <- bind_cols(Global_Confirmed, Global_Rcvd[, 3], Global_Deaths[, 3])
 Global_byDay <- Global_dat %>%
   mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
-  select(-3:-5) %>%
+  select(-3,-7,-8) %>%
   mutate(Total = Confirmed - Recovered - Deaths)
 
-Global_count <- Global_dat %>%
+Global_count <- Global_byDay %>%
   group_by(Date) %>%
   summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
 
@@ -114,10 +119,12 @@ US_data<- Global_byDay %>%
 ```{r}
 #map
 library(leaflet.extras)
-US_Cdat_geo<-US_Cdat %>%  group_by(`Province/State`) %>% summarise(Count=sum(as.numeric(Value)))
+US_Cdat_geo<-Global_Confirmed %>% filter(`Country/Region`=="US") %>% group_by(`Province/State`) %>%  summarise(Count=sum(as.numeric(Value))) 
 
-US_Cdat_geo<-US_Cdat_geo %>% select(`Province/State`,Lat,Long) %>% left_join(.,US_Cdat,by=Date)
+US_Cdat_geo<-Global_Confirmed %>% filter(`Country/Region`=="US") %>% select(`Province/State`,Lat,Long) %>%  inner_join(.,US_Cdat_geo) %>% mutate(Lat=as.numeric((Lat)),Long=as.numeric(Long),Count=as.numeric(Count))
+
 US_Cdat_geo
+
 
 leaflet(US_Cdat_geo) %>% 
   setView(lng=-96.7265	,lat=38.5266	,zoom = 4.4) %>% 
