@@ -1,7 +1,6 @@
 # Covid19-proj
 
-This project provides visualizations tracking the changing status of COVID-19 cases. Visualizations will include current case trends, overlay for different countries, and comparision to previous case rates in other similar infectious diseases.
-
+This project provides visualizations tracking the changing status of COVID-19 cases. Visualizations will include current case trends, overlay for different countries, and comparision to previous case rates in other similar infectious diseases
 
  <hr>
  
