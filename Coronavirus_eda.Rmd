@@ -37,7 +37,15 @@ api_data <- fromJSON(json)
 ```{r,message=FALSE}
 api_data <- api_data$data$covid19Stats
 
-api_data <- api_data %>% mutate(total = confirmed - deaths - recovered)
+api_data <- api_data %>% mutate(total = confirmed - deaths - recovered) %>% group_by(province) %>% summarise(total=sum(total))
+```
+
+```{r}
+api_data %>% plot_ly(x=~total,y=~province,color=~province)
+
+```
+```{r}
+api_data %>% summarise(total_confUS=sum(total))
 ```
 
 
@@ -71,7 +79,7 @@ Global_Rcvd <- recvd_dat %>%
   mutate(Date = ymd(Date))
 
 Global_dat <- bind_cols(Global_Confirmed, Global_Rcvd[, 3], Global_Deaths[, 3])
-Global_dat <- Global_dat %>%
+Global_byDay <- Global_dat %>%
   mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
   select(-3:-5) %>%
   mutate(Total = Confirmed - Recovered - Deaths)
@@ -94,37 +102,10 @@ Globe_Death_fig<-Global_count %>%
 subplot(Globe_Rcvd_fig,Globe_Death_fig)
 ```
 
-
 #### United States
-
 ```{r,message=FALSE,warning=FALSE}
-
-US_Cdat <- conf_dat %>%
-  slice(-1) %>%
-  filter(`Country/Region` == "US") %>%
-  arrange(Date) %>%
-  mutate(Date = ymd(Date),Lat=as.numeric(Lat),Long=as.numeric(Long))
-US_Ddat <- death_dat %>%
-  select(`Country/Region`, Date, Value) %>%
-  slice(-1) %>%
-  filter(`Country/Region` == "US") %>%
-  arrange(Date) %>%
-  mutate(Date = ymd(Date))
-US_Rdat <- recvd_dat %>%
-  select(`Country/Region`, Date, Value) %>%
-  slice(-1) %>%
-  filter(`Country/Region` == "US") %>%
-  arrange(Date) %>%
-  mutate(Date = ymd(Date))
-
-US_dat <- bind_cols(US_Cdat, US_Rdat[, 3], US_Ddat[, 3])
-
-US_dat <- US_dat %>%
-  mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
-  mutate(Total = Confirmed - Recovered - Deaths) %>% 
-  select(-6:-8)
-
-US_count <- US_dat %>%
+US_data<- Global_byDay %>%
+  filter(`Country/Region`=="US") %>% 
   group_by(Date) %>%
   summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
 ```
@@ -152,7 +133,7 @@ leaflet(US_Cdat_geo) %>%
 
 
 ```{r}
-US_count %>%
+US_data %>%
   plot_ly(x = ~Date, y = ~Total, mode = "lines", fill = "tonexty") %>%
   layout(
     title = "U.S. Coronavirus Cases"
@@ -177,7 +158,7 @@ US_count %>%
 <br>
 ```{r}
 # add percent change between days
-US_stats <- US_count %>% mutate(`% change` = 100 * (lead(Total) - Total) / Total)
+US_stats <- US_data %>% mutate(`% change` = 100 * (lead(Total) - Total) / Total)
 datatable(US_stats)
 ```
 
@@ -204,38 +185,13 @@ US_stats %>%
 <hr>
 #### Italy
 ```{r,warning=FALSE}
-Ita_Cdat <- conf_dat %>%
-  select(`Country/Region`, Date, Value) %>%
-  slice(-1) %>%
-  filter(`Country/Region` == "Italy") %>%
-  arrange(Date) %>%
-  mutate(Date = ymd(Date))
 
-Ita_Ddat <- death_dat %>%
-  select(`Country/Region`, Date, Value) %>%
-  slice(-1) %>%
-  filter(`Country/Region` == "Italy") %>%
-  arrange(Date) %>%
-  mutate(Date = ymd(Date))
-
-Ita_Rdat <- recvd_dat %>%
-  select(`Country/Region`, Date, Value) %>%
-  slice(-1) %>%
-  filter(`Country/Region` == "Italy") %>%
-  arrange(Date) %>%
-  mutate(Date = ymd(Date))
-
-Ita_dat <- bind_cols(Ita_Cdat, Ita_Rdat[, 3], Ita_Ddat[, 3])
-Ita_dat <- Ita_dat %>%
-  mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
-  select(-3:-5) %>%
-  mutate(Total = Confirmed - Recovered - Deaths)
-
-Ita_count <- Ita_dat %>%
+Ita_data<- Global_byDay %>%
+  filter(`Country/Region`=="Italy") %>% 
   group_by(Date) %>%
   summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
 
-Ita_count %>%
+Ita_data %>%
   plot_ly(x = ~Date, y = ~Total, type = "scatter", mode = "lines", color = "orange", fill = "tozeroy", fillcolor = "rgba(255, 212, 96, 0.5)") %>%
   layout(
     title = "Italian Coronavirus Cases"
@@ -254,7 +210,7 @@ Ita_count %>%
 <br>
 ```{r}
 # add percent change between days
-Ita_stats <- Ita_count %>%
+Ita_stats <- Ita_data %>%
   mutate(`% change` = 100 * (lead(Total) - Total) / Total) %>%
   na.omit() %>%
   slice(-1)
