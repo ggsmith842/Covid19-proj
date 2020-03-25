@@ -49,24 +49,24 @@ US_stats <- US_data %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) 
 
 # Define UI-----------------------------------------------------
 ui <- ui <- dashboardPage(
-    dashboardHeader(title = "COVID-19 Tracker"),
+    dashboardHeader(title = "US COVID-19 Tracker"),
     dashboardSidebar(sidebarMenu(
-        menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
-        menuItem("About", icon = icon("th"), tabName = "about",
+        menuItem("Live Data", tabName = "dashboard", icon = icon("dashboard")),
+        menuItem("Trends", icon = icon("th"), tabName = "about",
                  badgeLabel = "new", badgeColor = "green")
     )),
     dashboardBody(
         tabItems(
             tabItem(tabName = "dashboard",
                 fluidRow(
-                    infoBoxOutput("ConfirmedCases"),
-                    infoBoxOutput("Mortalities"),
-                    infoBoxOutput("deathRatio"),
+                    infoBoxOutput("ConfirmedCases",width = 3),
+                    infoBoxOutput("Recoveries",width=3),
+                    infoBoxOutput("Mortalities",width=3),
+                    infoBoxOutput("deathRatio",width=2),
                     box("Cases by Province",solidHeader = TRUE,
-                        background = "black",
-                        selectInput("Country","Choose a country",
-                                    choices = list("US","Italy")),
+                        background = "black", width=6,
                         plotlyOutput("plot1",height = 500)),
+                    box(dataTableOutput("dataTable"),width=6)
                     
                 )
             ),
@@ -74,8 +74,8 @@ ui <- ui <- dashboardPage(
                 tabName = "about",
                 h2("Historic Data"),
                 fluidRow(box("US Percent Change",solidHeader = TRUE,
-                             background = "black",
-                             plotlyOutput("plot2",height = 500))
+                             background = "blue",
+                             plotlyOutput("plot2",height = 450,width=490),width=5)
                     
                 )
             )
@@ -110,18 +110,23 @@ server <- function(input, output) {
     
     output$ConfirmedCases <-renderInfoBox({
         infoBox(title="Confirmed Cases",sum(api_data$confirmed),
-                 color="yellow",fill=TRUE)
+                 color="yellow",fill=TRUE,width=2)
     })
     
     output$Mortalities <-renderInfoBox({
         infoBox("Mortalities",sum(api_data$deaths),
-                color="red",fill=TRUE)
+                color="red",fill=TRUE,width=2)
+    })
+    
+    output$Recoveries <-renderInfoBox({
+        infoBox("Recoveries",sum(api_data$recovered),
+                color="green",fill=TRUE,width=2)
     })
     
     output$deathRatio <-renderInfoBox({
         infoBox("Mortality Rate",
                 paste(round(sum(api_data$deaths)/sum(api_data$confirmed),4)*100,"%"),
-                color="black",fill=TRUE)
+                color="black",fill=TRUE,width=2)
     })
     
     output$plot1 <-renderPlotly({
@@ -131,6 +136,9 @@ server <- function(input, output) {
         
     })
     
+    output$dataTable <- {renderDataTable(api_data[-3:-5],options=
+                                             list(lengthMenu=c(10,15)))}
+    
     output$plot2 <- renderPlotly({
         plot_ly(x = ~US_stats$Date, y = ~US_stats$`% change`,
                 type = "scatter",
@@ -138,6 +146,8 @@ server <- function(input, output) {
                 fill = "tonexty") 
             
     })
+    
+
     
     }
 
