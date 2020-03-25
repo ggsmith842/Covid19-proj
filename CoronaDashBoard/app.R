@@ -9,27 +9,78 @@ library(rromeo)
 library(DT)
 library(leaflet)
 
-# Define UI
+# Historical data----------------------------------------------
+conf_dat <- read_csv("time_series-ncov-Confirmed.csv")
+death_dat <- read_csv("time_series-ncov-Deaths.csv")
+recvd_dat <- read_csv("time_series-ncov-Recovered.csv")
+
+
+Global_Confirmed <- conf_dat %>%
+    select(`Country/Region`, Date, Value, Lat, Long, `Province/State`) %>%
+    slice(-1) %>%
+    arrange(Date) %>%
+    mutate(Date = ymd(Date))
+Global_Deaths <- death_dat %>%
+    select(`Country/Region`, Date, Value) %>%
+    slice(-1) %>%
+    arrange(Date) %>%
+    mutate(Date = ymd(Date))
+Global_Rcvd <- recvd_dat %>%
+    select(`Country/Region`, Date, Value) %>%
+    slice(-1) %>%
+    arrange(Date) %>%
+    mutate(Date = ymd(Date))
+
+Global_dat <- bind_cols(Global_Confirmed, Global_Rcvd[, 3], Global_Deaths[, 3])
+Global_byDay <- Global_dat %>%
+    mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
+    select(-3, -7, -8) %>%
+    mutate(Total = Confirmed - Recovered - Deaths)
+
+Global_count <- Global_byDay %>%
+    group_by(Date) %>%
+    summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
+
+US_data <- Global_byDay %>%
+    filter(`Country/Region` == "US") %>%
+    group_by(Date) %>%
+    summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
+US_stats <- US_data %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)
+
+# Define UI-----------------------------------------------------
 ui <- ui <- dashboardPage(
     dashboardHeader(title = "COVID-19 Tracker"),
     dashboardSidebar(sidebarMenu(
         menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
-        menuItem("About", icon = icon("th"), tabName = "Country",
+        menuItem("About", icon = icon("th"), tabName = "about",
                  badgeLabel = "new", badgeColor = "green")
     )),
     dashboardBody(
+        tabItems(
+            tabItem(tabName = "dashboard",
+                fluidRow(
+                    infoBoxOutput("ConfirmedCases"),
+                    infoBoxOutput("Mortalities"),
+                    infoBoxOutput("deathRatio"),
+                    box("Cases by Province",solidHeader = TRUE,
+                        background = "black",
+                        selectInput("Country","Choose a country",
+                                    choices = list("US","Italy")),
+                        plotlyOutput("plot1",height = 500)),
+                    
+                )
+            ),
+            tabItem(
+                tabName = "about",
+                h2("Historic Data"),
+                fluidRow(box("US Percent Change",solidHeader = TRUE,
+                             background = "black",
+                             plotlyOutput("plot2",height = 500))
+                    
+                )
+            )
+        )
         
-        fluidRow(
-            infoBoxOutput("ConfirmedCases"),
-            infoBoxOutput("Mortalities"),
-            infoBoxOutput("deathRatio"),
-            box("Cases by Province",solidHeader = TRUE,
-                background = "black",
-                selectInput("Country","Choose a country",
-                            choices = list("US","Italy")),
-                plotlyOutput("plot1",height = 500)),
-            
-                 )
     )
 )
 
@@ -68,8 +119,8 @@ server <- function(input, output) {
     })
     
     output$deathRatio <-renderInfoBox({
-        infoBox("Death Ratio",
-                paste(round(sum(api_data$deaths)/sum(api_data$confirmed),2)*100,"%"),
+        infoBox("Mortality Rate",
+                paste(round(sum(api_data$deaths)/sum(api_data$confirmed),4)*100,"%"),
                 color="black",fill=TRUE)
     })
     
@@ -78,6 +129,14 @@ server <- function(input, output) {
                 y=~api_data_byProvince$province,
                 color=~api_data_byProvince$province)
         
+    })
+    
+    output$plot2 <- renderPlotly({
+        plot_ly(x = ~US_stats$Date, y = ~US_stats$`% change`,
+                type = "scatter",
+                mode = "markers", 
+                fill = "tonexty") 
+            
     })
     
     }
