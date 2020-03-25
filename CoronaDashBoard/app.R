@@ -13,7 +13,7 @@ library(leaflet)
 conf_dat <- read_csv("time_series-ncov-Confirmed.csv")
 death_dat <- read_csv("time_series-ncov-Deaths.csv")
 recvd_dat <- read_csv("time_series-ncov-Recovered.csv")
-
+country_names <-read_csv("api_names.csv")
 
 Global_Confirmed <- conf_dat %>%
     select(`Country/Region`, Date, Value, Lat, Long, `Province/State`) %>%
@@ -52,7 +52,7 @@ ui <- dashboardPage(
     dashboardHeader(title = "US COVID-19 Tracker"),
     dashboardSidebar(sidebarMenu(
         menuItem("Live Data", tabName = "dashboard", icon = icon("dashboard"),
-                 menuSubItem(selectInput("country","Select a Country",c(1,2)),tabName = "dashboard")),
+                 menuSubItem(selectInput("country","Select a Country",choices=country_names),tabName = "dashboard")),
         menuItem("Trends", icon = icon("th"), tabName = "about",
                  badgeLabel = "new", badgeColor = "green"),
         menuItem("Global Map",tabName="maps",
@@ -67,8 +67,10 @@ ui <- dashboardPage(
                     infoBoxOutput("Mortalities",width=3),
                     infoBoxOutput("deathRatio",width=2),
                     box("Cases by Province",solidHeader = TRUE,
+                        helpText("Due to reporting restrictions
+                                 not all countries have meaningful provincial data."),
                         background = "black", width=6,
-                        plotlyOutput("plot1",height = 500)),
+                        plotlyOutput("plot1",height = 500,width=600)),
                     box(dataTableOutput("dataTable"),width=6)
                     
                 )
@@ -102,56 +104,64 @@ ui <- dashboardPage(
 # Define server logic 
 server <- function(input, output) {
     
-    corona_api <- GET(
-        url = "https://covid-19-coronavirus-statistics.p.rapidapi.com/v1/stats",
-        add_headers("X-RapidApi-Key" = paste(Sys.getenv("Rapid_KEY"))),
-        query = list(
-            country = "US"
-        )
-    )
-    stop_for_status(corona_api)
-    json <- content(corona_api, as = "text", encoding = "UTF-8")
-    
-    api_data <- fromJSON(json)
-    
-    api_data <- api_data$data$covid19Stats
-    api_data <- api_data %>% mutate(total = confirmed - deaths - recovered) 
-    
-    
-    api_data_byProvince <- api_data %>%
-        group_by(province) %>%
-        summarise(total = sum(total))
-    
-    
+ api<-reactive({corona_api <- GET(
+     url = "https://covid-19-coronavirus-statistics.p.rapidapi.com/v1/stats",
+     add_headers("X-RapidApi-Key" = paste(Sys.getenv("Rapid_KEY"))),
+     query = list(
+         country = input$country
+     )
+ )
+ stop_for_status(corona_api)
+ json <- content(corona_api, as = "text", encoding = "UTF-8")
+ 
+ api_data <- fromJSON(json)
+ 
+ api_data <- api_data$data$covid19Stats
+ api_data <- api_data %>% mutate(total = confirmed - deaths - recovered) 
+ 
+ })
+ 
+ 
+ api_by_province <- reactive({
+     
+     api_data_byProvince <- api() %>%
+         group_by(province) %>%
+         summarise(total = sum(total))
+ }) 
+ 
+ 
+     
     output$ConfirmedCases <-renderInfoBox({
-        infoBox(title="Confirmed Cases",sum(api_data$confirmed),
+        infoBox(title="Confirmed Cases",sum(api()$confirmed),
                  color="yellow",fill=TRUE,width=2)
     })
     
     output$Mortalities <-renderInfoBox({
-        infoBox("Mortalities",sum(api_data$deaths),
+        infoBox("Mortalities",sum(api()$deaths),
                 color="red",fill=TRUE,width=2)
     })
     
     output$Recoveries <-renderInfoBox({
-        infoBox("Recoveries",sum(api_data$recovered),
+        infoBox("Recoveries",sum(api()$recovered),
                 color="green",fill=TRUE,width=2)
     })
     
     output$deathRatio <-renderInfoBox({
         infoBox("Mortality Rate",
-                paste(round(sum(api_data$deaths)/sum(api_data$confirmed),4)*100,"%"),
+                paste(round(sum(api()$deaths)/sum(api()$confirmed),4)*100,"%"),
                 color="black",fill=TRUE,width=2)
     })
     
     output$plot1 <-renderPlotly({
-        plot_ly(x=api_data_byProvince$total,
-                y=~api_data_byProvince$province,
-                color=~api_data_byProvince$province)
+        plot_ly(api_by_province(),x=api_by_province()$total,
+                y=~api_by_province()$province,
+                color=~api_by_province()$province) %>% 
+            layout(xaxis=list(title="Total Active Cases"),
+                   yaxis=list(title='State/Province'))
         
     })
     
-    output$dataTable <- {renderDataTable(api_data[-3:-5],options=
+    output$dataTable <- {renderDataTable(api()[-3:-5],options=
                                              list(lengthMenu=c(10,15)))}
     
     output$plot2 <- renderPlotly({
