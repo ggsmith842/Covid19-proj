@@ -105,11 +105,26 @@ Global_count %>%
     title = "Global Coronavirus Active Cases"
   )
 
+```
+
+```{r}
 Globe_Rcvd_fig <- Global_count %>%
   plot_ly(x = ~Date, y = ~Recovered, mode = "lines", line = list(color = "purple"), fill = "tonexty", fillcolor = "lightpurple",name = "Recovred")
 Globe_Death_fig <- Global_count %>%
   plot_ly(x = ~Date, y = ~Deaths, mode = "lines", line = list(color = "red"), fill = "tonexty", fillcolor = "lightred",name="Deaths")
 subplot(Globe_Rcvd_fig, Globe_Death_fig)
+
+
+Globe_RecVsDeath_fig <- Globe_Rcvd_fig %>%
+  add_trace(x=~Global_count$Date,y=~Global_count$Deaths,mode="lines", fill = "tonexty",name="Deaths")
+
+fig1<-Global_count %>%
+  plot_ly(x = ~Date, y = ~Global_count$Recovered, mode = "lines",name='Recovered')
+
+fig1 %>% add_trace(x=~Global_count$Date,y=~Global_count$Deaths,name="Deaths",
+                   mode="lines",fill="tonexty") %>% add_trace(x = Global_count~Date, y = ~Global_count$Recovered, mode = "lines",name='Recovered',fill="tonexty")
+  
+
 ```
 
 #### United States
@@ -170,6 +185,7 @@ US_data %>%
 <br>
 ```{r}
 # add recovery vs death overlay
+
 ```
 
 <br>
@@ -181,9 +197,13 @@ datatable(US_stats)
 
 <br>
 ```{r,warning=FALSE}
-US_stats %>%
+fig1<-US_stats %>%
   plot_ly(x = ~Date, y = ~`% change`, type = "scatter", mode = "markers", fill = "tonexty") %>%
   layout(title = "Percent Change in Total Active Cases")
+
+fig1 %>% add_trace(Ita_stats,y=~Date,x=~`% change`,mode="markers")
+
+
 ```
 
 **Description of Percent Change plot**

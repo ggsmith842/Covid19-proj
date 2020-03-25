@@ -48,12 +48,15 @@ US_data <- Global_byDay %>%
 US_stats <- US_data %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)
 
 # Define UI-----------------------------------------------------
-ui <- ui <- dashboardPage(
+ui <- dashboardPage(
     dashboardHeader(title = "US COVID-19 Tracker"),
     dashboardSidebar(sidebarMenu(
-        menuItem("Live Data", tabName = "dashboard", icon = icon("dashboard")),
+        menuItem("Live Data", tabName = "dashboard", icon = icon("dashboard"),
+                 menuSubItem(selectInput("country","Select a Country",c(1,2)),tabName = "dashboard")),
         menuItem("Trends", icon = icon("th"), tabName = "about",
-                 badgeLabel = "new", badgeColor = "green")
+                 badgeLabel = "new", badgeColor = "green"),
+        menuItem("Global Map",tabName="maps",
+                 badgeLabel = 'geo',badgeColor = "green")
     )),
     dashboardBody(
         tabItems(
@@ -73,11 +76,23 @@ ui <- ui <- dashboardPage(
             tabItem(
                 tabName = "about",
                 h2("Historic Data"),
+                h4("Last Updated 03/21/2020"),
                 fluidRow(box("US Percent Change",solidHeader = TRUE,
                              background = "blue",
-                             plotlyOutput("plot2",height = 450,width=490),width=5)
+                             plotlyOutput("plot2",height = 300,width=300),height=3,width=3),
+                         box("Global Count",solidHeader = TRUE,
+                             background = "blue",
+                             plotlyOutput("plot3",height = 300,width=300),height=3,width=3),
+                         box("Global Recovery vs Death",solidHeader = TRUE,
+                             background = "blue",
+                             plotlyOutput("plot4",height = 300,width=400),height=3,width=4)
+            
                     
                 )
+            ),
+            tabItem(
+                tabName ="maps",
+                h2("The Map")
             )
         )
         
@@ -147,7 +162,27 @@ server <- function(input, output) {
             
     })
     
-
+    output$plot3 <- renderPlotly({
+        plot_ly(x = ~Global_count$Date, y = ~Global_count$Total,
+                mode = "lines", 
+                line = list(color = "green"), 
+                fill = "tonexty", 
+                fillcolor = "lightgreen")
+        
+    })
+    
+    output$plot4 <-renderPlotly({
+        
+        plot_ly(x = ~Global_count$Date, y = ~Global_count$Total) %>% 
+              add_trace(x=~Global_count$Date,y=~Global_count$Deaths,
+                        name="Deaths",
+                        mode="lines",fill="tonexty")  %>% 
+             add_trace(x = ~Global_count$Date, 
+                       y = ~Global_count$Recovered, 
+                       mode = "lines",
+                       name='Recovered',
+                       fill="tonexty")
+    })
     
     }
 
