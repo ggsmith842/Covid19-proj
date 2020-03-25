@@ -12,13 +12,21 @@ library(leaflet)
 # Define UI
 ui <- ui <- dashboardPage(
     dashboardHeader(title = "COVID-19 Tracker"),
-    dashboardSidebar(),
+    dashboardSidebar(sidebarMenu(
+        menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
+        menuItem("About", icon = icon("th"), tabName = "Country",
+                 badgeLabel = "new", badgeColor = "green")
+    )),
     dashboardBody(
         
         fluidRow(
             infoBoxOutput("ConfirmedCases"),
             infoBoxOutput("Mortalities"),
-            box("Barchart",
+            infoBoxOutput("deathRatio"),
+            box("Cases by Province",solidHeader = TRUE,
+                background = "black",
+                selectInput("Country","Choose a country",
+                            choices = list("US","Italy")),
                 plotlyOutput("plot1",height = 500)),
             
                  )
@@ -50,13 +58,19 @@ server <- function(input, output) {
     
     
     output$ConfirmedCases <-renderInfoBox({
-        infoBox("ConfirmedCases",sum(api_data$confirmed),
+        infoBox(title="Confirmed Cases",sum(api_data$confirmed),
                  color="yellow",fill=TRUE)
     })
     
     output$Mortalities <-renderInfoBox({
         infoBox("Mortalities",sum(api_data$deaths),
                 color="red",fill=TRUE)
+    })
+    
+    output$deathRatio <-renderInfoBox({
+        infoBox("Death Ratio",
+                paste(round(sum(api_data$deaths)/sum(api_data$confirmed),2)*100,"%"),
+                color="black",fill=TRUE)
     })
     
     output$plot1 <-renderPlotly({
