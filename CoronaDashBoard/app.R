@@ -48,12 +48,15 @@ US_data <- Global_byDay %>%
 US_stats <- US_data %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)
 
 # Define UI-----------------------------------------------------
-ui <- ui <- dashboardPage(
+ui <- dashboardPage(
     dashboardHeader(title = "US COVID-19 Tracker"),
     dashboardSidebar(sidebarMenu(
-        menuItem("Live Data", tabName = "dashboard", icon = icon("dashboard")),
+        menuItem("Live Data", tabName = "dashboard", icon = icon("dashboard"),
+                 menuSubItem(selectInput("country","Select a Country",c(1,2)),tabName = "dashboard")),
         menuItem("Trends", icon = icon("th"), tabName = "about",
-                 badgeLabel = "new", badgeColor = "green")
+                 badgeLabel = "new", badgeColor = "green"),
+        menuItem("Global Map",tabName="maps",
+                 badgeLabel = 'geo',badgeColor = "green")
     )),
     dashboardBody(
         tabItems(
@@ -83,8 +86,13 @@ ui <- ui <- dashboardPage(
                          box("Global Recovery vs Death",solidHeader = TRUE,
                              background = "blue",
                              plotlyOutput("plot4",height = 300,width=400),height=3,width=4)
+            
                     
                 )
+            ),
+            tabItem(
+                tabName ="maps",
+                h2("The Map")
             )
         )
         
