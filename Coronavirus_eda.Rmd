@@ -71,7 +71,10 @@ recvd_dat <- read_csv("time_series-ncov-Recovered.csv")
 all_data <- read_csv("covid-19-all.csv")
 ```
 
+
+
 ```{r}
+#Global DATA
 all_data<-all_data %>% replace_na(list(Confirmed=0,Recovered=0,Deaths=0)) %>%  mutate(Total = Confirmed - Recovered - Deaths)
 
 all_count <- all_data %>%  group_by(Date) %>%
@@ -92,8 +95,40 @@ fig1 %>% add_trace(x=~all_count$Date,y=~all_count$Deaths,name="Deaths",
 ```
 
 
-#### Global 
+
 ```{r}
+
+
+#OLD DATA
+#---------------------------------------------------------------------------------------
+# Global_Confirmed <- conf_dat %>%
+#     select(`Country/Region`, Date, Value, Lat, Long, `Province/State`) %>%
+#     slice(-1) %>%
+#     arrange(Date) %>%
+#     mutate(Date = ymd(Date))
+# Global_Deaths <- death_dat %>%
+#     select(`Country/Region`, Date, Value) %>%
+#     slice(-1) %>%
+#     arrange(Date) %>%
+#     mutate(Date = ymd(Date))
+# Global_Rcvd <- recvd_dat %>%
+#     select(`Country/Region`, Date, Value) %>%
+#     slice(-1) %>%
+#     arrange(Date) %>%
+#     mutate(Date = ymd(Date))
+# 
+# Global_dat <- bind_cols(Global_Confirmed, Global_Rcvd[, 3], Global_Deaths[, 3])
+# Global_byDay <- Global_dat %>%
+#     mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
+#     select(-3, -7, -8) %>%
+#     mutate(Total = Confirmed - Recovered - Deaths)
+# 
+# Global_count <- Global_byDay %>%
+#     group_by(Date) %>%
+#     summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
+
+#---------------------------------------------------------------
+
 # Global_Confirmed <- conf_dat %>%
 #   select(`Country/Region`, Date, Value, Lat, Long, `Province/State`) %>%
 #   slice(-1) %>%
@@ -158,7 +193,6 @@ library(leaflet.extras)
 US_dat_geo <- all_data %>%
   filter(`Country/Region` == "US") %>%
   group_by(`Province/State`)
-
 
 leaflet(US_dat_geo) %>%
   setView(lng = -96.7265, lat = 38.5266, zoom = 4.4) %>%
