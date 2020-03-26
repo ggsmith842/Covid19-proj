@@ -49,7 +49,7 @@ US_stats <- US_data %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) 
 
 # Define UI-----------------------------------------------------
 ui <- dashboardPage(
-    dashboardHeader(title = "US COVID-19 Tracker"),
+    dashboardHeader(title = "COVID-19 Tracker"),
     dashboardSidebar(sidebarMenu(
         menuItem("Live Data", tabName = "dashboard", icon = icon("dashboard"),
                  menuSubItem(selectInput("country","Select a Country",choices=country_names),tabName = "dashboard")),
@@ -69,9 +69,11 @@ ui <- dashboardPage(
                     box("Cases by Province",solidHeader = TRUE,
                         helpText("Due to reporting restrictions
                                  not all countries have meaningful provincial data."),
-                        background = "black", width=6,
-                        plotlyOutput("plot1",height = 500,width=600)),
-                    box(dataTableOutput("dataTable"),width=6)
+                        helpText("You can also remove 'trace 0' to see a better represenation."),
+                        background = "black", width=7,
+                        plotlyOutput("plot1",height = 465,width=700),),
+                    box(solidHeader = TRUE,strong("Please Note: Not all locations have City data"),
+                        dataTableOutput("dataTable"),width=5)
                     
                 )
             ),
@@ -162,7 +164,8 @@ server <- function(input, output) {
     })
     
     output$dataTable <- {renderDataTable(api()[-3:-5],options=
-                                             list(lengthMenu=c(10,15)))}
+                                             list(lengthMenu=c(10,15),
+                                                  scrollX=TRUE))}
     
     output$plot2 <- renderPlotly({
         plot_ly(x = ~US_stats$Date, y = ~US_stats$`% change`,
