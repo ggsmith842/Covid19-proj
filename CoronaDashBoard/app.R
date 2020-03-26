@@ -62,37 +62,37 @@ ui <- dashboardPage(
     dashboardBody(
         tabItems(
             tabItem(tabName = "dashboard",
-                fluidRow(
-                    infoBoxOutput("ConfirmedCases",width = 3),
-                    infoBoxOutput("Recoveries",width=3),
-                    infoBoxOutput("Mortalities",width=3),
-                    infoBoxOutput("deathRatio",width=2),
-                    box("Cases by Province",solidHeader = TRUE,
-                        helpText("Due to reporting restrictions
+                    fluidRow(
+                        infoBoxOutput("ConfirmedCases",width = 3),
+                        infoBoxOutput("Recoveries",width=3),
+                        infoBoxOutput("Mortalities",width=3),
+                        infoBoxOutput("deathRatio",width=2),
+                        box("Cases by Province",solidHeader = TRUE,
+                            helpText("Due to reporting restrictions
                                  not all countries have meaningful provincial data."),
-                        helpText("You can also remove 'trace 0' to see a better represenation."),
-                        background = "black", width=7,
-                        plotlyOutput("plot1",height = 465,width=700),),
-                    box(solidHeader = TRUE,strong("Please Note: Not all locations have City data"),
-                        dataTableOutput("dataTable"),width=5)
-                    
-                )
+                            helpText("You can also remove 'trace 0' to see a better represenation."),
+                            background = "black", width=7,
+                            plotlyOutput("plot1",height = 465,width=700),),
+                        box(solidHeader = TRUE,strong("Please Note: Not all locations have City data"),
+                            dataTableOutput("dataTable"),width=5)
+                        
+                    )
             ),
             tabItem(
                 tabName = "about",
                 h2("Historic Data"),
                 h4("Last Updated 03/21/2020"),
                 fluidRow(box("US Percent Change",style = 'color:black',solidHeader = TRUE,
-                             background = "blue",
-                             plotlyOutput("plot2",height = 300,width=300),height=3,width=3),
+                             background = "light-blue",
+                             plotlyOutput("plot2",height = 300,width=375),width=4),
                          box("Global Count",style = 'color:black',solidHeader = TRUE,
-                             background = "blue",
-                             plotlyOutput("plot3",height = 300,width=300),height=3,width=3),
+                             background = "light-blue",
+                             plotlyOutput("plot3",height = 300,width=375),width=4),
                          box("Global Recovery vs Death",style = 'color:black',solidHeader = TRUE,
-                             background = "blue",
-                             plotlyOutput("plot4",height = 300,width=400),height=3,width=4)
-            
-                    
+                             background = "light-blue",
+                             plotlyOutput("plot4",height = 300,width=385),width=4)
+                         
+                         
                 )
             ),
             tabItem(
@@ -109,36 +109,36 @@ ui <- dashboardPage(
 # Define server logic 
 server <- function(input, output) {
     
- api<-reactive({corona_api <- GET(
-     url = "https://covid-19-coronavirus-statistics.p.rapidapi.com/v1/stats",
-     add_headers("X-RapidApi-Key" = paste(Sys.getenv("Rapid_KEY"))),
-     query = list(
-         country = input$country
-     )
- )
- stop_for_status(corona_api)
- json <- content(corona_api, as = "text", encoding = "UTF-8")
- 
- api_data <- fromJSON(json)
- 
- api_data <- api_data$data$covid19Stats
- api_data <- api_data %>% mutate(total = confirmed - deaths - recovered) 
- 
- })
- 
- 
- api_by_province <- reactive({
-     
-     api_data_byProvince <- api() %>%
-         group_by(province) %>%
-         summarise(total = sum(total))
- }) 
- 
- 
-     
+    api<-reactive({corona_api <- GET(
+        url = "https://covid-19-coronavirus-statistics.p.rapidapi.com/v1/stats",
+        add_headers("X-RapidApi-Key" = paste(Sys.getenv("Rapid_KEY"))),
+        query = list(
+            country = input$country
+        )
+    )
+    stop_for_status(corona_api)
+    json <- content(corona_api, as = "text", encoding = "UTF-8")
+    
+    api_data <- fromJSON(json)
+    
+    api_data <- api_data$data$covid19Stats
+    api_data <- api_data %>% mutate(total = confirmed - deaths - recovered) 
+    
+    })
+    
+    
+    api_by_province <- reactive({
+        
+        api_data_byProvince <- api() %>%
+            group_by(province) %>%
+            summarise(total = sum(total))
+    }) 
+    
+    
+    
     output$ConfirmedCases <-renderInfoBox({
         infoBox(title="Confirmed Cases",sum(api()$confirmed),
-                 color="yellow",fill=TRUE,width=2)
+                color="yellow",fill=TRUE,width=2)
     })
     
     output$Mortalities <-renderInfoBox({
@@ -177,7 +177,7 @@ server <- function(input, output) {
                 fill = "tonexty") %>% 
             layout(xaxis = list(title = "Date"),
                    yaxis = list(title = "Percentage Change"))
-            
+        
     })
     
     output$plot3 <- renderPlotly({
@@ -194,14 +194,14 @@ server <- function(input, output) {
     output$plot4 <-renderPlotly({
         
         plot_ly(x = ~Global_count$Date, y = ~Global_count$Total) %>% 
-              add_trace(x=~Global_count$Date,y=~Global_count$Deaths,
-                        name="Deaths",
-                        mode="lines",fill="tonexty")  %>% 
-             add_trace(x = ~Global_count$Date, 
-                       y = ~Global_count$Recovered, 
-                       mode = "lines",
-                       name='Recovered',
-                       fill="tonexty") %>% 
+            add_trace(x=~Global_count$Date,y=~Global_count$Deaths,
+                      name="Deaths",
+                      mode="lines",fill="tonexty")  %>% 
+            add_trace(x = ~Global_count$Date, 
+                      y = ~Global_count$Recovered, 
+                      mode = "lines",
+                      name='Recovered',
+                      fill="tonexty") %>% 
             layout(xaxis = list(title = "Date"),
                    yaxis = list(title = "Global Count Total & Deaths"))
     })
@@ -219,7 +219,7 @@ server <- function(input, output) {
         
         world_api_data <- fromJSON(json)
         
-      
+        
         
         # find gps coordinates for countries and merge with api data
         
@@ -236,10 +236,10 @@ server <- function(input, output) {
         
         country_coord = merge(geo,countries, by ="name") 
         country_coord = country_coord %>% rename(Place = name)
-       
+        
         
         # aggregated statistics grouped by countries
-       
+        
         world_count = world_api_data$data$covid19Stats %>% 
             select(country,confirmed,deaths,recovered) %>% 
             group_by(country) %>% 
@@ -250,10 +250,10 @@ server <- function(input, output) {
             arrange(desc(active_cases))
         world_count$country[world_count$country=="US"] = "United States"
         world_count = world_count %>% rename(Place = country)
-    
+        
         
         # merge with gps data
-       
+        
         world_rona = merge(world_count,country_coord,by="Place") %>% 
             select(Place,latitude,longitude,active_cases)
         
@@ -263,10 +263,10 @@ server <- function(input, output) {
                 lng = ~longitude, lat = ~latitude, intensity = ~active_cases,
                 blur = 20, max = 0.05, radius = 15
             )
-   
+        
     })
     
-    }
+}
 
 
 
