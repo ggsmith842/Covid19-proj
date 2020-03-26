@@ -64,7 +64,7 @@ ui <- dashboardPage(
                                  not all countries have meaningful provincial data."),
                             helpText("You can also remove 'trace 0' to see a better represenation."),
                             background = "black", width=7,
-                            plotlyOutput("plot1",height = 465,width=700),),
+                            plotlyOutput("plot1",height = 465,width=700)),
                         box(solidHeader = TRUE,strong("Please Note: Not all locations have City data"),
                             dataTableOutput("dataTable"),width=5)
                         
@@ -229,6 +229,7 @@ server <- function(input, output) {
         countries = unique(world_api_data$data$covid19Stats$country) %>% tibble(name = .)
         countries$name[countries$name=="US"] = "United States"
         
+        # subset geo_countries.csv with countries existing in API
         country_coord = merge(geo,countries, by ="name") 
         country_coord = country_coord %>% rename(Place = name)
         
@@ -241,8 +242,8 @@ server <- function(input, output) {
             summarise(total_confirmed = sum(confirmed),
                       total_deaths = sum(deaths),
                       total_recovered = sum(recovered)) %>% 
-            mutate(active_cases = total_confirmed - total_deaths - total_recovered) %>% 
-            arrange(desc(active_cases))
+            mutate(active_cases = total_confirmed - total_deaths - total_recovered)
+        
         world_count$country[world_count$country=="US"] = "United States"
         world_count = world_count %>% rename(Place = country)
         
