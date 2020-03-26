@@ -14,7 +14,8 @@ This project provides visualizations tracking the changing status of COVID-19 ca
 
 *1. https://rapidapi.com/KishCom/api/covid-19-coronavirus-statistics?endpoint=apiendpoint_53587227-476d-4279-8f1d-4884e60d1db7*
 
-*2. https://data.humdata.org/dataset/novel-coronavirus-2019-ncov-cases*
+*2. https://data.humdata.org/dataset/novel-coronavirus-2019-ncov-cases* Deprecated
 
+*3. https://www.kaggle.com/gpreda/coronavirus-2019ncov/data*
 
 More to come.
