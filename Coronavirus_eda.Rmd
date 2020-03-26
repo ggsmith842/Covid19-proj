@@ -18,6 +18,7 @@ library(lubridate)
 library(rromeo)
 library(DT)
 library(leaflet)
+library(forecast)
 ```
 
 ```{r,message=FALSE}
@@ -25,7 +26,7 @@ corona_api <- GET(
   url = "https://covid-19-coronavirus-statistics.p.rapidapi.com/v1/stats",
   add_headers("X-RapidApi-Key" = paste(Sys.getenv("Rapid_KEY"))),
   query = list(
-    country = "US"
+    country = "France"
   )
 )
 stop_for_status(corona_api)
@@ -43,7 +44,7 @@ api_data_byProvince <- api_data %>%
   group_by(province) %>%
   summarise(total = sum(total))
 
-sum(api_data$recovered)
+api_data_byProvince
 ```
 
 #### Current Counts (US)
@@ -197,12 +198,9 @@ datatable(US_stats)
 
 <br>
 ```{r,warning=FALSE}
-fig1<-US_stats %>%
+US_stats %>%
   plot_ly(x = ~Date, y = ~`% change`, type = "scatter", mode = "markers", fill = "tonexty") %>%
   layout(title = "Percent Change in Total Active Cases")
-
-fig1 %>% add_trace(Ita_stats,y=~Date,x=~`% change`,mode="markers")
-
 
 ```
 
