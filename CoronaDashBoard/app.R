@@ -83,14 +83,14 @@ ui <- dashboardPage(
                 h2("Historic Data"),
                 h4("Last Updated 03/21/2020"),
                 fluidRow(box("US Percent Change",style = 'color:black',solidHeader = TRUE,
-                             background = "blue",
-                             plotlyOutput("plot2",height = 300,width=300),height=3,width=3),
+                             background = "light-blue",
+                             plotlyOutput("plot2",height = 300,width=375),width=4),
                          box("Global Count",style = 'color:black',solidHeader = TRUE,
-                             background = "blue",
-                             plotlyOutput("plot3",height = 300,width=300),height=3,width=3),
+                             background = "light-blue",
+                             plotlyOutput("plot3",height = 300,width=375),width=4),
                          box("Global Recovery vs Death",style = 'color:black',solidHeader = TRUE,
-                             background = "blue",
-                             plotlyOutput("plot4",height = 300,width=400),height=3,width=4)
+                             background = "light-blue",
+                             plotlyOutput("plot4",height = 300,width=385),width=4)
                          
                          
                 )
