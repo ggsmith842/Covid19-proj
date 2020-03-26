@@ -14,39 +14,31 @@ library(leaflet.extras)
 conf_dat <- read_csv("time_series-ncov-Confirmed.csv")
 death_dat <- read_csv("time_series-ncov-Deaths.csv")
 recvd_dat <- read_csv("time_series-ncov-Recovered.csv")
+all_data <- read_csv("covid-19-all.csv")
 country_names <-read_csv("api_names.csv")
 
-Global_Confirmed <- conf_dat %>%
-    select(`Country/Region`, Date, Value, Lat, Long, `Province/State`) %>%
-    slice(-1) %>%
-    arrange(Date) %>%
-    mutate(Date = ymd(Date))
-Global_Deaths <- death_dat %>%
-    select(`Country/Region`, Date, Value) %>%
-    slice(-1) %>%
-    arrange(Date) %>%
-    mutate(Date = ymd(Date))
-Global_Rcvd <- recvd_dat %>%
-    select(`Country/Region`, Date, Value) %>%
-    slice(-1) %>%
-    arrange(Date) %>%
-    mutate(Date = ymd(Date))
+#NEW DATA
+#----------------------------------------------------------------
 
-Global_dat <- bind_cols(Global_Confirmed, Global_Rcvd[, 3], Global_Deaths[, 3])
-Global_byDay <- Global_dat %>%
-    mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
-    select(-3, -7, -8) %>%
-    mutate(Total = Confirmed - Recovered - Deaths)
+all_data<-all_data %>% replace_na(list(Confirmed=0,Recovered=0,Deaths=0)) %>%  mutate(Total = Confirmed - Recovered - Deaths)
 
-Global_count <- Global_byDay %>%
-    group_by(Date) %>%
+all_count <- all_data %>%  group_by(Date) %>%
     summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
+all_count<-all_count %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)
 
-US_data <- Global_byDay %>%
+
+
+US_data <- all_data %>%
     filter(`Country/Region` == "US") %>%
     group_by(Date) %>%
-    summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
+    summarise(Confirmed = sum(Confirmed), 
+              Recovered = sum(Recovered), 
+              Deaths = sum(Deaths), 
+              Total = sum(Total))
+
 US_stats <- US_data %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)
+#------------------------------------------------------------
+
 
 # Define UI-----------------------------------------------------
 ui <- dashboardPage(
@@ -54,7 +46,7 @@ ui <- dashboardPage(
     dashboardSidebar(sidebarMenu(
         menuItem("Live Data", tabName = "dashboard", icon = icon("dashboard"),
                  menuSubItem(selectInput("country","Select a Country",choices=country_names),tabName = "dashboard")),
-        menuItem("Trends", icon = icon("th"), tabName = "about",
+        menuItem("Trends", icon = icon("chart-area"), tabName = "about",
                  badgeLabel = "new", badgeColor = "green"),
         menuItem("Global Map",icon = icon("map"),tabName="maps",
                  badgeLabel = 'geo',badgeColor = "green")
@@ -81,8 +73,8 @@ ui <- dashboardPage(
             tabItem(
                 tabName = "about",
                 h2("Historic Data"),
-                h4("Last Updated 03/21/2020"),
-                fluidRow(box("US Percent Change",style = 'color:black',solidHeader = TRUE,
+                h4("Last Updated 03/25/2020"),
+                fluidRow(box("Global Percent Change",style = 'color:black',solidHeader = TRUE,
                              background = "light-blue",
                              plotlyOutput("plot2",height = 300,width=375),width=4),
                          box("Global Count",style = 'color:black',solidHeader = TRUE,
@@ -171,17 +163,20 @@ server <- function(input, output) {
                                                   scrollX=TRUE))}
     
     output$plot2 <- renderPlotly({
-        plot_ly(x = ~US_stats$Date, y = ~US_stats$`% change`,
+        plot_ly(x = ~all_count$Date, y = ~all_count$`% change`,
                 type = "scatter",
-                mode = "markers", 
-                fill = "tonexty") %>% 
+                mode = "lines",
+                line = list(color="green"),
+                fill = "tonexty",
+                fillcolor = "lightgreen") %>% 
             layout(xaxis = list(title = "Date"),
                    yaxis = list(title = "Percentage Change"))
         
     })
     
+    
     output$plot3 <- renderPlotly({
-        plot_ly(x = ~Global_count$Date, y = ~Global_count$Total,
+        plot_ly(x = ~all_count$Date, y = ~all_count$Total,
                 mode = "lines", 
                 line = list(color = "green"), 
                 fill = "tonexty", 
@@ -193,12 +188,12 @@ server <- function(input, output) {
     
     output$plot4 <-renderPlotly({
         
-        plot_ly(x = ~Global_count$Date, y = ~Global_count$Total) %>% 
-            add_trace(x=~Global_count$Date,y=~Global_count$Deaths,
+        plot_ly(x = ~all_count$Date, y = ~all_count$Total) %>% 
+            add_trace(x=~all_count$Date,y=~all_count$Deaths,
                       name="Deaths",
                       mode="lines",fill="tonexty")  %>% 
-            add_trace(x = ~Global_count$Date, 
-                      y = ~Global_count$Recovered, 
+            add_trace(x = ~all_count$Date, 
+                      y = ~all_count$Recovered, 
                       mode = "lines",
                       name='Recovered',
                       fill="tonexty") %>% 

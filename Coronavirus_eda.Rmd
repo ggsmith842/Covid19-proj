@@ -26,7 +26,8 @@ corona_api <- GET(
   url = "https://covid-19-coronavirus-statistics.p.rapidapi.com/v1/stats",
   add_headers("X-RapidApi-Key" = paste(Sys.getenv("Rapid_KEY"))),
   query = list(
-    country = "France"
+    country = ""
+    
   )
 )
 stop_for_status(corona_api)
@@ -67,99 +68,138 @@ setwd("~/GitHub/Covid19-proj/Data")
 conf_dat <- read_csv("time_series-ncov-Confirmed.csv")
 death_dat <- read_csv("time_series-ncov-Deaths.csv")
 recvd_dat <- read_csv("time_series-ncov-Recovered.csv")
+all_data <- read_csv("covid-19-all.csv")
 ```
 
 
 
-#### Global 
 ```{r}
-Global_Confirmed <- conf_dat %>%
-  select(`Country/Region`, Date, Value, Lat, Long, `Province/State`) %>%
-  slice(-1) %>%
-  arrange(Date) %>%
-  mutate(Date = ymd(Date))
-Global_Deaths <- death_dat %>%
-  select(`Country/Region`, Date, Value) %>%
-  slice(-1) %>%
-  arrange(Date) %>%
-  mutate(Date = ymd(Date))
-Global_Rcvd <- recvd_dat %>%
-  select(`Country/Region`, Date, Value) %>%
-  slice(-1) %>%
-  arrange(Date) %>%
-  mutate(Date = ymd(Date))
+#Global DATA
+all_data<-all_data %>% replace_na(list(Confirmed=0,Recovered=0,Deaths=0)) %>%  mutate(Total = Confirmed - Recovered - Deaths)
 
-Global_dat <- bind_cols(Global_Confirmed, Global_Rcvd[, 3], Global_Deaths[, 3])
-Global_byDay <- Global_dat %>%
-  mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
-  select(-3, -7, -8) %>%
-  mutate(Total = Confirmed - Recovered - Deaths)
-
-Global_count <- Global_byDay %>%
-  group_by(Date) %>%
+all_count <- all_data %>%  group_by(Date) %>%
   summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
+all_count<-all_count %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)
 
-
-Global_count %>%
+all_count %>%
   plot_ly(x = ~Date, y = ~Total, mode = "lines", line = list(color = "green"), fill = "tonexty", fillcolor = "lightgreen") %>%
   layout(
-    title = "Global Coronavirus Active Cases"
-  )
+    title = "Global Coronavirus Active Cases")
+
+fig1<-all_count %>%
+  plot_ly(x = ~Date, y = ~all_count$Recovered, mode = "lines",name='Recovered')
+
+fig1 %>% add_trace(x=~all_count$Date,y=~all_count$Deaths,name="Deaths",
+                   mode="lines",fill="tonexty") %>% add_trace(x = all_count~Date, y = ~all_count$Recovered, mode = "lines",name='Recovered',fill="tonexty")
 
 ```
+
+
 
 ```{r}
-Globe_Rcvd_fig <- Global_count %>%
-  plot_ly(x = ~Date, y = ~Recovered, mode = "lines", line = list(color = "purple"), fill = "tonexty", fillcolor = "lightpurple",name = "Recovred")
-Globe_Death_fig <- Global_count %>%
-  plot_ly(x = ~Date, y = ~Deaths, mode = "lines", line = list(color = "red"), fill = "tonexty", fillcolor = "lightred",name="Deaths")
-subplot(Globe_Rcvd_fig, Globe_Death_fig)
 
 
-Globe_RecVsDeath_fig <- Globe_Rcvd_fig %>%
-  add_trace(x=~Global_count$Date,y=~Global_count$Deaths,mode="lines", fill = "tonexty",name="Deaths")
+#OLD DATA
+#---------------------------------------------------------------------------------------
+# Global_Confirmed <- conf_dat %>%
+#     select(`Country/Region`, Date, Value, Lat, Long, `Province/State`) %>%
+#     slice(-1) %>%
+#     arrange(Date) %>%
+#     mutate(Date = ymd(Date))
+# Global_Deaths <- death_dat %>%
+#     select(`Country/Region`, Date, Value) %>%
+#     slice(-1) %>%
+#     arrange(Date) %>%
+#     mutate(Date = ymd(Date))
+# Global_Rcvd <- recvd_dat %>%
+#     select(`Country/Region`, Date, Value) %>%
+#     slice(-1) %>%
+#     arrange(Date) %>%
+#     mutate(Date = ymd(Date))
+# 
+# Global_dat <- bind_cols(Global_Confirmed, Global_Rcvd[, 3], Global_Deaths[, 3])
+# Global_byDay <- Global_dat %>%
+#     mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
+#     select(-3, -7, -8) %>%
+#     mutate(Total = Confirmed - Recovered - Deaths)
+# 
+# Global_count <- Global_byDay %>%
+#     group_by(Date) %>%
+#     summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
 
-fig1<-Global_count %>%
-  plot_ly(x = ~Date, y = ~Global_count$Recovered, mode = "lines",name='Recovered')
+#---------------------------------------------------------------
 
-fig1 %>% add_trace(x=~Global_count$Date,y=~Global_count$Deaths,name="Deaths",
-                   mode="lines",fill="tonexty") %>% add_trace(x = Global_count~Date, y = ~Global_count$Recovered, mode = "lines",name='Recovered',fill="tonexty")
-  
+# Global_Confirmed <- conf_dat %>%
+#   select(`Country/Region`, Date, Value, Lat, Long, `Province/State`) %>%
+#   slice(-1) %>%
+#   arrange(Date) %>%
+#   mutate(Date = ymd(Date))
+# Global_Deaths <- death_dat %>%
+#   select(`Country/Region`, Date, Value) %>%
+#   slice(-1) %>%
+#   arrange(Date) %>%
+#   mutate(Date = ymd(Date))
+# Global_Rcvd <- recvd_dat %>%
+#   select(`Country/Region`, Date, Value) %>%
+#   slice(-1) %>%
+#   arrange(Date) %>%
+#   mutate(Date = ymd(Date))
+# 
+# Global_dat <- bind_cols(Global_Confirmed, Global_Rcvd[, 3], Global_Deaths[, 3])
+# Global_byDay <- Global_dat %>%
+#   mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
+#   select(-3, -7, -8) %>%
+#   mutate(Total = Confirmed - Recovered - Deaths)
+# 
+# Global_count <- Global_byDay %>%
+#   group_by(Date) %>%
+#   summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
+# 
+# 
+# Global_count %>%
+#   plot_ly(x = ~Date, y = ~Total, mode = "lines", line = list(color = "green"), fill = "tonexty", fillcolor = "lightgreen") %>%
+#   layout(
+#     title = "Global Coronavirus Active Cases"
+#   )
 
 ```
+
+Global percent change
+```{r}
+all_count
+
+all_count %>%  plot_ly(x = ~all_count$Date, y = ~all_count$`% change`, mode = "lines", line = list(color = "green"), fill = "tonexty", fillcolor = "lightgreen") %>%
+  layout(
+    title = "Global Coronavirus % Change in Confirmed Sases"
+  )
+```
+
 
 #### United States
 ```{r,message=FALSE,warning=FALSE}
-US_data <- Global_byDay %>%
+US_data <- all_data %>%
   filter(`Country/Region` == "US") %>%
   group_by(Date) %>%
   summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
+
+US_data
+
 ```
 
 
 ```{r}
 # map
 library(leaflet.extras)
-US_Cdat_geo <- Global_Confirmed %>%
+US_dat_geo <- all_data %>%
   filter(`Country/Region` == "US") %>%
-  group_by(`Province/State`) %>%
-  summarise(Count = sum(as.numeric(Value)))
+  group_by(`Province/State`)
 
-US_Cdat_geo <- Global_Confirmed %>%
-  filter(`Country/Region` == "US") %>%
-  select(`Province/State`, Lat, Long) %>%
-  inner_join(., US_Cdat_geo) %>%
-  mutate(Lat = as.numeric((Lat)), Long = as.numeric(Long), Count = as.numeric(Count))
-
-US_Cdat_geo
-
-
-leaflet(US_Cdat_geo) %>%
+leaflet(US_dat_geo) %>%
   setView(lng = -96.7265, lat = 38.5266, zoom = 4.4) %>%
   addProviderTiles(providers$CartoDB.DarkMatter) %>%
   addHeatmap(
-    lng = ~Long, lat = ~Lat, intensity = ~Count,
-    blur = 20, max = -0.05, radius = 15
+    lng = ~Longitude, lat = ~Latitude, intensity = ~Confirmed,
+    blur = 40, max = -0.05, radius = 15
   )
 
 ```
@@ -184,15 +224,10 @@ US_data %>%
 * As of March 21, there are 25.2k active cases in the U.S.
 
 <br>
-```{r}
-# add recovery vs death overlay
 
-```
-
-<br>
 ```{r}
 # add percent change between days
-US_stats <- US_data %>% mutate(`% change` = 100 * (lead(Total) - Total) / Total)
+US_stats <- US_data %>% mutate(`% change` = round(100 * (lead(Total) - Total) / Total),4)
 datatable(US_stats)
 ```
 
@@ -221,7 +256,7 @@ US_stats %>%
 #### Italy
 ```{r,warning=FALSE}
 
-Ita_data <- Global_byDay %>%
+Ita_data <- all_data %>%
   filter(`Country/Region` == "Italy") %>%
   group_by(Date) %>%
   summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
@@ -247,8 +282,7 @@ Ita_data %>%
 # add percent change between days
 Ita_stats <- Ita_data %>%
   mutate(`% change` = 100 * (lead(Total) - Total) / Total) %>%
-  na.omit() %>%
-  slice(-1)
+  na.omit()
 
 datatable(Ita_stats)
 ```
