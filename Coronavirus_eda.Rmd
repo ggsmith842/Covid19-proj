@@ -175,6 +175,16 @@ all_count %>%  plot_ly(x = ~all_count$Date, y = ~all_count$`% change`, mode = "l
 ```
 
 
+Average change per day
+```{r}
+
+all_count %>% transmute(diff=lead(Confirmed)-Confirmed) %>% summarise(avg=mean(diff,na.rm=TRUE))
+all_count %>% transmute(diff=lead(Recovered)-Recovered) %>% summarise(avg=mean(diff,na.rm=TRUE))  
+all_count %>% transmute(diff=lead(Deaths)-Deaths) %>% summarise(avg=mean(diff,na.rm=TRUE))
+```
+
+
+
 #### United States
 ```{r,message=FALSE,warning=FALSE}
 US_data <- all_data %>%
