@@ -9,7 +9,7 @@ library(rromeo)
 library(DT)
 library(leaflet)
 library(leaflet.extras)
-
+library(reactable)
 # Historical data----------------------------------------------
 conf_dat <- read_csv("time_series-ncov-Confirmed.csv")
 death_dat <- read_csv("time_series-ncov-Deaths.csv")
@@ -76,7 +76,7 @@ ui <- dashboardPage(
                             background = "black", width=7,
                             plotlyOutput("plot1",height = 465,width=700)),
                         box(solidHeader = TRUE,strong("Please Note: Not all locations have City data"),
-                            dataTableOutput("dataTable"),width=5)
+                            reactableOutput("dataTable"),width=5)
                         
                     )
             ),
@@ -207,9 +207,20 @@ server <- function(input, output) {
         
     })
     
-    output$dataTable <- {renderDataTable(api()[-3:-5],options=
-                                             list(lengthMenu=c(10,15),
-                                                  scrollX=TRUE))}
+    # output$dataTable <- {renderDataTable(api()[-3:-5],options=
+    #                                          list(lengthMenu=c(10,15),
+    #                                               scrollX=TRUE))}
+    
+    output$dataTable <- renderReactable({
+      reactable(api()[-3:-5] %>% arrange(desc(confirmed)),
+                filterable = TRUE, searchable = TRUE, bordered = TRUE, striped = TRUE, highlight = TRUE,
+                showSortable = TRUE, defaultSortOrder = "desc", defaultPageSize = 10, showPageSizeOptions = TRUE, pageSizeOptions = c(25, 50, 75, 100, 200), 
+                columns = list(
+                  confirmed = colDef(filterable = FALSE,defaultSortOrder = "desc"),
+                  deaths = colDef(filterable = FALSE, defaultSortOrder = "desc"),
+                  recovered = colDef(filterable =  FALSE, defaultSortOrder = "desc")
+                ))
+    })
 
 # TRENDS PAGE        
 #-----------------------------------------------------------------------------------------------    
