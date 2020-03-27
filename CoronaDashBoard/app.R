@@ -82,7 +82,8 @@ ui <- dashboardPage(
                              plotlyOutput("plot3",height = 300,width=375),width=4),
                          box("Global Recovery vs Death",style = 'color:black',solidHeader = TRUE,
                              background = "light-blue",
-                             plotlyOutput("plot4",height = 300,width=385),width=4)
+                             plotlyOutput("plot4",height = 300,width=385),width=4),
+                fluidRow(infoBoxOutput("avgConf",width=3))
                          
                          
                 )
@@ -147,6 +148,13 @@ server <- function(input, output) {
         infoBox("Mortality Rate",
                 paste(round(sum(api()$deaths)/sum(api()$confirmed),4)*100,"%"),
                 color="black",fill=TRUE,width=2)
+    })
+    
+    output$avgConf <- renderInfoBox({
+        infoBox("Avg Change Per Day",
+                all_count %>% 
+                    transmute(diff=lead(Confirmed)-Confirmed) %>% 
+                    summarise(avg=round(mean(diff,na.rm=TRUE),2)))
     })
     
     output$plot1 <-renderPlotly({
