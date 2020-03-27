@@ -55,10 +55,11 @@ ui <- dashboardPage(
         menuItem("Live Data", tabName = "dashboard", icon = icon("dashboard"),
                  menuSubItem(selectInput("country","Select a Country",choices=country_names),tabName = "dashboard")),
         menuItem("Trends", icon = icon("chart-area"), tabName = "about",
-                 #badgeLabel = "new", badgeColor = "green",
                  menuSubItem(selectInput("country2","Select a Country",choices=trend_country),tabName = "about")),
         menuItem("Global Map",icon = icon("map"),tabName="maps",
-                 badgeLabel = 'geo',badgeColor = "green")
+                 menuSubItem(selectInput("country3","Select a Country",choices=trend_country),tabName = "maps"))
+                 
+        
     )),
     dashboardBody(
         tabItems(
@@ -83,6 +84,7 @@ ui <- dashboardPage(
                 tabName = "about",
                 h2("Historic Data"),
                 h4("Last Updated 03/25/2020"),
+                #global trends plots
                 fluidRow(box(strong("Global Percent Change"),align="center",style = 'color:black',solidHeader = TRUE,
                              background = "light-blue",
                              plotlyOutput("plot2",height = 300,width=375),width=4),
@@ -91,9 +93,14 @@ ui <- dashboardPage(
                              plotlyOutput("plot3",height = 300,width=375),width=4),
                          box(strong("Global Recovery vs Death"),align="center",style = 'color:black',solidHeader = TRUE,
                              background = "light-blue",
-
                              plotlyOutput("plot4",height = 300,width=385),width=4)
                 ),
+                #global averages info boxes
+                fluidRow(infoBoxOutput("avgConf",width=4),
+                         infoBoxOutput("avgRecovered",width = 4),
+                         infoBoxOutput("avgDeaths",width = 4)),
+                
+                #by country plots
                 fluidRow(box(strong("Country Change"),align="center",style = 'color:black',solidHeader = TRUE,
                              background = "light-blue",
                              plotlyOutput("country_plot2",height = 300,width=375),width=4),
@@ -102,9 +109,9 @@ ui <- dashboardPage(
                              plotlyOutput("country_plot3",height = 300,width=375),width=4),
                          box(strong("Country Recovery vs Death"),align="center",style = 'color:black',solidHeader = TRUE,
                              background = "light-blue",
-                             plotlyOutput("country_plot4",height = 300,width=385),width=4),
+                             plotlyOutput("country_plot4",height = 300,width=385),width=4)
 
-                            fluidRow(infoBoxOutput("avgConf",width=3))
+                            
                          
                        
                 )
@@ -155,46 +162,41 @@ server <- function(input, output) {
     
     
     #by country
-    data_by_country = reactive({
+    data_by_country <- reactive({
       
-       all_data %>%  filter(Country == paste(input$country2)) %>% group_by(Date) %>%
+       data_byCountry <- all_data %>%  filter(Country == paste(input$country2)) %>% group_by(Date) %>%
       summarise(Confirmed = sum(Confirmed), 
                 Recovered = sum(Recovered), 
                 Deaths = sum(Deaths), 
                 Total = sum(Total))  
     
-      all_data %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)
+      data_byCountry<-data_byCountry %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)
     })
-    
-    
+
+# LIVE DATA PAGE
+#--------------------------------------------------------------------------------------------------------
     
     output$ConfirmedCases <-renderInfoBox({
         infoBox(title="Confirmed Cases",sum(api()$confirmed),
-                color="yellow",fill=TRUE,width=2)
+                color="yellow",fill=TRUE,icon=icon("notes-medical"),width=2)
     })
     
     output$Mortalities <-renderInfoBox({
         infoBox("Mortalities",sum(api()$deaths),
-                color="red",fill=TRUE,width=2)
+                color="red",fill=TRUE,icon=icon("diagnoses"),width=2)
     })
     
     output$Recoveries <-renderInfoBox({
         infoBox("Recoveries",sum(api()$recovered),
-                color="green",fill=TRUE,width=2)
+                color="green",fill=TRUE,icon=icon("star-of-life"),width=2)
     })
     
     output$deathRatio <-renderInfoBox({
         infoBox("Mortality Rate",
                 paste(round(sum(api()$deaths)/sum(api()$confirmed),4)*100,"%"),
-                color="black",fill=TRUE,width=2)
+                color="black",fill=TRUE,icon=icon('percentage'),width=2)
     })
     
-    output$avgConf <- renderInfoBox({
-        infoBox("Avg Change Per Day",
-                all_count %>% 
-                    transmute(diff=lead(Confirmed)-Confirmed) %>% 
-                    summarise(avg=round(mean(diff,na.rm=TRUE),2)))
-    })
     
     output$plot1 <-renderPlotly({
         plot_ly(api_by_province(),x=api_by_province()$total,
@@ -208,14 +210,18 @@ server <- function(input, output) {
     output$dataTable <- {renderDataTable(api()[-3:-5],options=
                                              list(lengthMenu=c(10,15),
                                                   scrollX=TRUE))}
+
+# TRENDS PAGE        
+#-----------------------------------------------------------------------------------------------    
     
+    #Global historic count plots
     output$plot2 <- renderPlotly({
         plot_ly(x = ~all_count$Date, y = ~all_count$`% change`,
                 type = "scatter",
                 mode = "lines",
-                line = list(color="green"),
+                line = list(color="darkblue"),
                 fill = "tonexty",
-                fillcolor = "lightgreen") %>% 
+                fillcolor = "lightblue") %>% 
             layout(xaxis = list(title = "Date"),
                    yaxis = list(title = "Percentage Change"))
         
@@ -225,9 +231,9 @@ server <- function(input, output) {
     output$plot3 <- renderPlotly({
         plot_ly(x = ~all_count$Date, y = ~all_count$Total,
                 mode = "lines", 
-                line = list(color = "green"), 
+                line = list(color = "orange"), 
                 fill = "tonexty", 
-                fillcolor = "lightgreen")%>% 
+                fillcolor = "lightorange")%>% 
             layout(xaxis = list(title = "Date"),
                    yaxis = list(title = "Global Count Total"))
         
@@ -238,17 +244,48 @@ server <- function(input, output) {
         plot_ly(x = ~all_count$Date, y = ~all_count$Total) %>% 
             add_trace(x=~all_count$Date,y=~all_count$Deaths,
                       name="Deaths",
-                      mode="lines",fill="tonexty")  %>% 
+                      mode="lines",
+                      line = list(color='red'),
+                      fill="tonexty",
+                      fillcolor='lightred')  %>% 
             add_trace(x = ~all_count$Date, 
                       y = ~all_count$Recovered, 
                       mode = "lines",
+                      line = list(color='darkgreen'),
                       name='Recovered',
-                      fill="tonexty") %>% 
+                      fill="tonexty",
+                      fillcolor='lightgreen') %>% 
             layout(xaxis = list(title = "Date"),
                    yaxis = list(title = "Global Count Total & Deaths"))
     })
     
+    #averages infoBoxes------------
+    output$avgConf <- renderInfoBox({
+      infoBox("Avg Global Change in Confirmed Cases Per Day",
+              color="yellow",fill=TRUE,icon=icon("notes-medical"),
+              all_count %>% 
+                transmute(diff=lead(Confirmed)-Confirmed) %>% 
+                summarise(avg=round(mean(diff,na.rm=TRUE),0)))
+    })
     
+    output$avgRecovered <- renderInfoBox({
+      infoBox("Avg Global Change in Recoveries Per Day",
+              color="green",fill=TRUE,icon=icon("star-of-life"),
+              all_count %>% 
+                transmute(diff=lead(Recovered)-Recovered) %>% 
+                summarise(avg=round(mean(diff,na.rm=TRUE),0)))
+    })
+    
+    output$avgDeaths <- renderInfoBox({
+      infoBox("Avg Global Change in Mortalities Per Day",
+              color="red",fill=TRUE,icon=icon("diagnoses"),
+              all_count %>% 
+                transmute(diff=lead(Deaths)-Deaths) %>% 
+                summarise(avg=round(mean(diff,na.rm=TRUE),0)))
+    })
+    
+    
+    #by country plots----------------
     output$country_plot2 <- renderPlotly({
     
       req(data_by_country())
@@ -256,9 +293,9 @@ server <- function(input, output) {
       plot_ly(x = ~data_by_country()$Date, y = ~data_by_country()$`% change`,
               type = "scatter",
               mode = "lines",
-              line = list(color="green"),
+              line = list(color="darkblue"),
               fill = "tonexty",
-              fillcolor = "lightgreen") %>% 
+              fillcolor = "lightblue") %>% 
         layout(title = paste(input$country2, "Percent Change"),
               xaxis = list(title = "Date"),
                yaxis = list(title = "Percentage Change"))
@@ -272,9 +309,9 @@ server <- function(input, output) {
       
       plot_ly(x = ~data_by_country()$Date, y = ~data_by_country()$Total,
               mode = "lines", 
-              line = list(color = "green"), 
+              line = list(color = "orange"), 
               fill = "tonexty", 
-              fillcolor = "lightgreen")%>% 
+              fillcolor = "lightorange")%>% 
         layout(title = paste(input$country2, "Count Total"),
               xaxis = list(title = "Date"),
                yaxis = list(title = "Global Count Total"))
@@ -288,18 +325,24 @@ server <- function(input, output) {
       plot_ly(x = ~data_by_country()$Date, y = ~data_by_country()$Total) %>% 
         add_trace(x=~data_by_country()$Date,y=~data_by_country()$Deaths,
                   name="Deaths",
-                  mode="lines",fill="tonexty")  %>% 
-        add_trace(x = ~all_count$Date, 
-                  y = ~all_count$Recovered, 
+                  mode="lines",
+                  line = list(color='red'),
+                  fill="tonexty",
+                  fillcolor='lightred')  %>% 
+        add_trace(x = ~data_by_country()$Date, 
+                  y = ~data_by_country()$Recovered, 
                   mode = "lines",
+                  line = list(color='darkgreen'),
                   name='Recovered',
-                  fill="tonexty") %>% 
+                  fill="tonexty",
+                  fillcolor='lightgreen') %>% 
         layout(title = paste(input$country2, "Total & Deaths"),
               xaxis = list(title = "Date"),
                yaxis = list(title = "Global Count Total & Deaths"))
     })
-    
-    
+
+# GLOBAL MAPS PAGE        
+#---------------------------------------------------------------------------------------------------    
     output$global_heat <- renderLeaflet({
         
         # GET WORLD DATA
@@ -376,7 +419,7 @@ server <- function(input, output) {
     output$country_heat <-  renderLeaflet({
       
       specefic_c = all_data %>% 
-        filter(Country == paste(input$country2))%>% 
+        filter(Country == paste(input$country3))%>% 
         select(`Province/State`,Latitude,Longitude,Total)
       
       color_scheme <- viridis::cividis(n_distinct(specefic_c$Total))
@@ -404,7 +447,7 @@ server <- function(input, output) {
     
 }
 
-
+#-------------------------------------------------------------------------------------------------------
 
 # Run the application 
 shinyApp(ui = ui, server = server)
