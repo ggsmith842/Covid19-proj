@@ -22,14 +22,22 @@ country_names <-read_csv("api_names.csv")
 
 all_data<-all_data %>% replace_na(list(Confirmed=0,Recovered=0,Deaths=0)) %>%  mutate(Total = Confirmed - Recovered - Deaths)
 
+all_data = all_data %>% rename(Country = `Country/Region`)
+
+#list of unique countries for dropdown
+trend_country = all_data %>% select(Country) %>% unique()
+
+#global
 all_count <- all_data %>%  group_by(Date) %>%
     summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
 all_count<-all_count %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)
 
 
 
+
+
 US_data <- all_data %>%
-    filter(`Country/Region` == "US") %>%
+    filter(Country == "US") %>%
     group_by(Date) %>%
     summarise(Confirmed = sum(Confirmed), 
               Recovered = sum(Recovered), 
@@ -47,7 +55,8 @@ ui <- dashboardPage(
         menuItem("Live Data", tabName = "dashboard", icon = icon("dashboard"),
                  menuSubItem(selectInput("country","Select a Country",choices=country_names),tabName = "dashboard")),
         menuItem("Trends", icon = icon("chart-area"), tabName = "about",
-                 badgeLabel = "new", badgeColor = "green"),
+                 #badgeLabel = "new", badgeColor = "green",
+                 menuSubItem(selectInput("country2","Select a Country",choices=trend_country),tabName = "about")),
         menuItem("Global Map",icon = icon("map"),tabName="maps",
                  badgeLabel = 'geo',badgeColor = "green")
     )),
@@ -58,8 +67,8 @@ ui <- dashboardPage(
                         infoBoxOutput("ConfirmedCases",width = 3),
                         infoBoxOutput("Recoveries",width=3),
                         infoBoxOutput("Mortalities",width=3),
-                        infoBoxOutput("deathRatio",width=2),
-                        box("Cases by Province",solidHeader = TRUE,
+                        infoBoxOutput("deathRatio",width=3),
+                        box("Cases by Province",align="center",solidHeader = TRUE,
                             helpText("Due to reporting restrictions
                                  not all countries have meaningful provincial data."),
                             helpText("You can also remove 'trace 0' to see a better represenation."),
@@ -74,24 +83,37 @@ ui <- dashboardPage(
                 tabName = "about",
                 h2("Historic Data"),
                 h4("Last Updated 03/25/2020"),
-                fluidRow(box("Global Percent Change",style = 'color:black',solidHeader = TRUE,
+                fluidRow(box(strong("Global Percent Change"),align="center",style = 'color:black',solidHeader = TRUE,
                              background = "light-blue",
                              plotlyOutput("plot2",height = 300,width=375),width=4),
-                         box("Global Count",style = 'color:black',solidHeader = TRUE,
+                         box(strong("Global Count"),align="center",style = 'color:black',solidHeader = TRUE,
                              background = "light-blue",
                              plotlyOutput("plot3",height = 300,width=375),width=4),
-                         box("Global Recovery vs Death",style = 'color:black',solidHeader = TRUE,
+                         box(strong("Global Recovery vs Death"),align="center",style = 'color:black',solidHeader = TRUE,
                              background = "light-blue",
                              plotlyOutput("plot4",height = 300,width=385),width=4)
-                         
-                         
+                ),
+                fluidRow(box(strong("Country Change"),align="center",style = 'color:black',solidHeader = TRUE,
+                             background = "light-blue",
+                             plotlyOutput("country_plot2",height = 300,width=375),width=4),
+                         box(strong("Country Count"),align="center",style = 'color:black',solidHeader = TRUE,
+                             background = "light-blue",
+                             plotlyOutput("country_plot3",height = 300,width=375),width=4),
+                         box(strong("Country Recovery vs Death"),align="center",style = 'color:black',solidHeader = TRUE,
+                             background = "light-blue",
+                             plotlyOutput("country_plot4",height = 300,width=385),width=4)
                 )
+                
             ),
             tabItem(
                 tabName ="maps",
-                h2("Insert Title about Heat Map here"),
+                h2("Global Heat Map"), 
                 box("Heat Map",style = 'color:black',solidHeader = TRUE,
-                    leafletOutput("heat",width='100%'))
+                                           width = 12,
+                                           leafletOutput("country_heat",width='100%')),
+                box("Heat Map",style = 'color:black',solidHeader = TRUE,
+                    width = 12,
+                    leafletOutput("global_heat",width='100%'))
             )
         )
         
@@ -125,6 +147,19 @@ server <- function(input, output) {
             group_by(province) %>%
             summarise(total = sum(total))
     }) 
+    
+    
+    #by country
+    data_by_country = reactive({
+      
+       all_data %>%  filter(Country == paste(input$country2)) %>% group_by(Date) %>%
+      summarise(Confirmed = sum(Confirmed), 
+                Recovered = sum(Recovered), 
+                Deaths = sum(Deaths), 
+                Total = sum(Total))  
+    
+      all_data %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)
+    })
     
     
     
@@ -201,7 +236,59 @@ server <- function(input, output) {
                    yaxis = list(title = "Global Count Total & Deaths"))
     })
     
-    output$heat <- renderLeaflet({
+    
+    output$country_plot2 <- renderPlotly({
+    
+      req(data_by_country())
+      
+      plot_ly(x = ~data_by_country()$Date, y = ~data_by_country()$`% change`,
+              type = "scatter",
+              mode = "lines",
+              line = list(color="green"),
+              fill = "tonexty",
+              fillcolor = "lightgreen") %>% 
+        layout(title = paste(input$country2, "Percent Change"),
+              xaxis = list(title = "Date"),
+               yaxis = list(title = "Percentage Change"))
+      
+    })
+    
+    
+    output$country_plot3 <- renderPlotly({
+      
+      req(data_by_country())
+      
+      plot_ly(x = ~data_by_country()$Date, y = ~data_by_country()$Total,
+              mode = "lines", 
+              line = list(color = "green"), 
+              fill = "tonexty", 
+              fillcolor = "lightgreen")%>% 
+        layout(title = paste(input$country2, "Count Total"),
+              xaxis = list(title = "Date"),
+               yaxis = list(title = "Global Count Total"))
+      
+    })
+    
+    output$country_plot4 <-renderPlotly({
+      
+      req(data_by_country())
+      
+      plot_ly(x = ~data_by_country()$Date, y = ~data_by_country()$Total) %>% 
+        add_trace(x=~data_by_country()$Date,y=~data_by_country()$Deaths,
+                  name="Deaths",
+                  mode="lines",fill="tonexty")  %>% 
+        add_trace(x = ~all_count$Date, 
+                  y = ~all_count$Recovered, 
+                  mode = "lines",
+                  name='Recovered',
+                  fill="tonexty") %>% 
+        layout(title = paste(input$country2, "Total & Deaths"),
+              xaxis = list(title = "Date"),
+               yaxis = list(title = "Global Count Total & Deaths"))
+    })
+    
+    
+    output$global_heat <- renderLeaflet({
         
         # GET WORLD DATA
         
@@ -252,15 +339,56 @@ server <- function(input, output) {
         
         world_rona = merge(world_count,country_coord,by="Place") %>% 
             select(Place,latitude,longitude,active_cases)
+    
+        color_scheme <- viridis::cividis(n_distinct(world_rona$active_cases))
+        pal = colorFactor(color_scheme, world_rona$active_cases)
         
-        leaflet(world_rona) %>% 
-            addProviderTiles(providers$CartoDB.DarkMatter) %>%
-            addHeatmap(
-                lng = ~longitude, lat = ~latitude, intensity = ~active_cases,
-                blur = 20, max = 0.05, radius = 15
-            )
-        
+        #https://www.r-bloggers.com/exploring-london-crime-with-r-heat-maps/
+        world_rona %>% 
+          leaflet() %>%
+          addProviderTiles(providers$CartoDB.Positron) %>%
+          addCircleMarkers(~as.numeric(longitude),
+                           ~as.numeric(latitude),
+                           fillColor = ~pal(active_cases),
+                           stroke = FALSE, fillOpacity = 0.8,
+                           clusterOptions = markerClusterOptions(), # adds summary circles
+                           popup = ~paste(world_rona$Place,":",world_rona$active_cases)
+          ) %>%
+          addHeatmap(lng=~as.numeric(longitude),
+                     lat=~as.numeric(latitude),
+                     radius = 8) %>% 
+          addResetMapButton()
     })
+    
+    
+    output$country_heat <-  renderLeaflet({
+      
+      specefic_c = all_data %>% 
+        filter(Country == paste(input$country2))%>% 
+        select(`Province/State`,Latitude,Longitude,Total)
+      
+      color_scheme <- viridis::cividis(n_distinct(specefic_c$Total))
+      pal = colorFactor(color_scheme, specefic_c$Total)
+      
+      specefic_c  %>% 
+        leaflet() %>%
+        addProviderTiles(providers$CartoDB.Positron) %>%
+        addCircleMarkers(~as.numeric(Longitude),
+                         ~as.numeric(Latitude),
+                         fillColor = ~pal(Total),
+                         stroke = FALSE, fillOpacity = 0.8,
+                         clusterOptions = markerClusterOptions(), # adds summary circles
+                         popup = ~paste(all_data$`Province/State`,":",all_data$Total)
+        ) %>%
+        addHeatmap(lng=~as.numeric(Longitude),
+                   lat=~as.numeric(Latitude),
+                   radius = 8) %>% 
+        addResetMapButton()
+        
+      
+    })
+    
+ 
     
 }
 
