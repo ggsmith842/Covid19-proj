@@ -21,15 +21,22 @@ This project provides visualizations tracking the changing status of COVID-19 ca
 More to come.
 
 ## Inspiration
+How to better understand the magnitude of the growing numbers, convey findings in an illustrative manner and spread awareness.
 
 ## What it does
+Visualizes the number of active cases per country, per city (barplot,lineplot, heatmap)
 
 ## How I built it
+Using Rstudio, we embedded R code into ShinyDashboard framework, implementing customizations and user functions with HTML/CSS.
 
 ## Challenges I ran into
+Find accurate, up-to-date data and presenting them properly, fact-checking interpretations at every step. The wrong analysis in this atmosphere can lead to very frightening findings.
 
 ## Accomplishments that I'm proud of
+Strong collaboration, work-ethic, time management, application of classroom knowledge and skills
 
 ## What I learned
+The multitude of the numbers growing exponentially.
 
 ## What's next for COVID-19 Tracker
+With more data, forecast/project numbers. Find the peak and when it starts to plateau. These will provide hints or clues for the coming days, weeks and advise stakeholders on how to best prepare for the coming worst.
