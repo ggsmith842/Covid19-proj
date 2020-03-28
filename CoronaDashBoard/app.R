@@ -456,7 +456,7 @@ server <- function(input, output) {
                          fillColor = ~pal(Total),
                          stroke = FALSE, fillOpacity = 0.8,
                          clusterOptions = markerClusterOptions(), # adds summary circles
-                         popup = ~paste(all_data$`Province/State`,":",all_data$Total)
+                         popup = ~paste(specefic_c$`Province/State`,":",specefic_c$Total)
         ) %>%
         addHeatmap(lng=~as.numeric(Longitude),
                    lat=~as.numeric(Latitude),
