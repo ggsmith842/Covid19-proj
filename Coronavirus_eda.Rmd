@@ -57,6 +57,12 @@ api_data_byProvince %>% plot_ly(x = ~total, y = ~province, color = ~province)
 ```{r}
 api_data %>% summarise(total_confUS = sum(total))
 ```
+```{r}
+api_data[-3:-5] %>% names()
+
+api_data[-3:-5] %>% arrange(desc(deaths)) %>% datatable() 
+```
+
 
 <hr>
 
@@ -69,6 +75,14 @@ conf_dat <- read_csv("time_series-ncov-Confirmed.csv")
 death_dat <- read_csv("time_series-ncov-Deaths.csv")
 recvd_dat <- read_csv("time_series-ncov-Recovered.csv")
 all_data <- read_csv("covid-19-all.csv")
+
+comm<-"China"
+all_data = all_data %>% rename(Country = `Country/Region`)
+data_by_country <- all_data %>% filter(Country==paste(comm)) %>% group_by(Date)  %>%
+      summarise(Confirmed = sum(Confirmed), 
+                Recovered = sum(Recovered), 
+                Deaths = sum(Deaths), 
+                Total = sum(Total))  
 ```
 
 
@@ -191,8 +205,6 @@ US_data <- all_data %>%
   filter(`Country/Region` == "US") %>%
   group_by(Date) %>%
   summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
-
-US_data
 
 ```
 
