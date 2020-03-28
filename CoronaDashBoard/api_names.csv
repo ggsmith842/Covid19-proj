@@ -1,4 +1,4 @@
-unique(api_data$data$covid19Stats$country)
+country
 US
 Canada
 China
