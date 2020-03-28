@@ -1,6 +1,10 @@
 library(shiny)
 library(shinydashboard)
-library(tidyverse)
+#library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(readr)
 library(jsonlite)
 library(httr)
 library(plotly)
@@ -10,14 +14,15 @@ library(DT)
 library(leaflet)
 library(leaflet.extras)
 library(reactable)
+library(shinythemes)
 # Historical data----------------------------------------------
-conf_dat <- read_csv("time_series-ncov-Confirmed.csv")
-death_dat <- read_csv("time_series-ncov-Deaths.csv")
-recvd_dat <- read_csv("time_series-ncov-Recovered.csv")
+#conf_dat <- read_csv("time_series-ncov-Confirmed.csv")
+#death_dat <- read_csv("time_series-ncov-Deaths.csv")
+#recvd_dat <- read_csv("time_series-ncov-Recovered.csv")
 all_data <- read_csv("covid-19-all.csv")
 country_names <-read_csv("api_names.csv")
 
-#NEW DATA
+#NEW DATA from Kaggle
 #----------------------------------------------------------------
 
 all_data<-all_data %>% replace_na(list(Confirmed=0,Recovered=0,Deaths=0)) %>%  mutate(Total = Confirmed - Recovered - Deaths)
@@ -26,6 +31,9 @@ all_data = all_data %>% rename(Country = `Country/Region`)
 
 #list of unique countries for dropdown
 trend_country = all_data %>% select(Country) %>% unique()
+
+#last updated info
+last = all_data$Date %>% unique() %>% tail(1)
 
 #global
 all_count <- all_data %>%  group_by(Date) %>%
@@ -62,6 +70,9 @@ ui <- dashboardPage(
         
     )),
     dashboardBody(
+      tags$head(
+        tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
+      ),
         tabItems(
             tabItem(tabName = "dashboard",
                     fluidRow(
@@ -83,7 +94,7 @@ ui <- dashboardPage(
             tabItem(
                 tabName = "about",
                 h2("Historic Data"),
-                h4("Last Updated 03/25/2020"),
+                h3("Curated Data as of ", paste(last),"reported by John Hopkins CSSE" ),
                 #global trends plots
                 fluidRow(box(strong("Global Percent Change"),align="center",style = 'color:black',solidHeader = TRUE,
                              background = "light-blue",
@@ -120,6 +131,7 @@ ui <- dashboardPage(
             tabItem(
                 tabName ="maps",
                 h2("Global Heat Map"), 
+                h3("Curated Data as of ", paste(last),"reported by John Hopkins CSSE" ),
                 box("Heat Map",style = 'color:black',solidHeader = TRUE,
                                            width = 12,
                                            leafletOutput("country_heat",width='100%')),
