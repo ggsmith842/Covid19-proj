@@ -40,10 +40,6 @@ all_count <- all_data %>%  group_by(Date) %>%
     summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
 all_count<-all_count %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)
 
-
-
-
-
 US_data <- all_data %>%
     filter(Country == "US") %>%
     group_by(Date) %>%
@@ -62,9 +58,9 @@ ui <- dashboardPage(
     dashboardSidebar(sidebarMenu(
         menuItem("Live Data", tabName = "dashboard", icon = icon("dashboard"),
                  menuSubItem(selectInput("country","Select a Country",choices=country_names),tabName = "dashboard")),
-        menuItem("Trends", icon = icon("chart-area"), tabName = "about",
-                 menuSubItem(selectInput("country2","Select a Country",choices=trend_country),tabName = "about")),
-        menuItem("Global Map",icon = icon("map"),tabName="maps",
+        menuItem("Trends", icon = icon("chart-area"), tabName = "trends",
+                 menuSubItem(selectInput("country2","Select a Country",choices=trend_country),tabName = "trends")),
+        menuItem("Maps",icon = icon("map"),tabName="maps",
                  menuSubItem(selectInput("country3","Select a Country",choices=trend_country),tabName = "maps"))
                  
         
@@ -92,7 +88,7 @@ ui <- dashboardPage(
                     )
             ),
             tabItem(
-                tabName = "about",
+                tabName = "trends",
                 h2("Historic Data"),
                 h3("Curated Data as of ", paste(last),"reported by John Hopkins CSSE" ),
                 #global trends plots
@@ -130,14 +126,16 @@ ui <- dashboardPage(
             ),
             tabItem(
                 tabName ="maps",
-                h2("Global Heat Map"), 
+                h2("Geographic Information"), 
                 h3("Curated Data as of ", paste(last),"reported by John Hopkins CSSE" ),
-                box("Heat Map",style = 'color:black',solidHeader = TRUE,
-                                           width = 12,
-                                           leafletOutput("country_heat",width='100%')),
-                box("Heat Map",style = 'color:black',solidHeader = TRUE,
+                box("Global Stats",style = 'color:black',solidHeader = TRUE,
+                    width = 3),
+                box("GlobalHeat Map",style = 'color:black',solidHeader = TRUE,
+                    width = 9,
+                    leafletOutput("global_heat",width='100%')),
+                box("Cases by Country",style = 'color:black',solidHeader = TRUE,
                     width = 12,
-                    leafletOutput("global_heat",width='100%'))
+                    leafletOutput("country_heat",width='100%'))
             )
         )
         
@@ -218,10 +216,6 @@ server <- function(input, output) {
                    yaxis=list(title='State/Province'))
         
     })
-    
-    # output$dataTable <- {renderDataTable(api()[-3:-5],options=
-    #                                          list(lengthMenu=c(10,15),
-    #                                               scrollX=TRUE))}
     
     output$dataTable <- renderReactable({
       reactable(api()[-3:-5] %>% arrange(desc(confirmed)),
@@ -348,12 +342,14 @@ server <- function(input, output) {
       plot_ly(x = ~data_by_country()$Date, y = ~data_by_country()$Total) %>% 
         add_trace(x=~data_by_country()$Date,y=~data_by_country()$Deaths,
                   name="Deaths",
+                  type = "scatter",
                   mode="lines",
                   line = list(color='red'),
-                  fill="tonexty",
+                  fill="tozeroy",
                   fillcolor='lightred')  %>% 
         add_trace(x = ~data_by_country()$Date, 
                   y = ~data_by_country()$Recovered, 
+                  type = "scatter",
                   mode = "lines",
                   line = list(color='darkgreen'),
                   name='Recovered',
