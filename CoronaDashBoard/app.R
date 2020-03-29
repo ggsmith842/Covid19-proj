@@ -63,7 +63,7 @@ ui <- dashboardPage(
   
     dashboardHeader(title = "COVID-19 Tracker",titleWidth = 180),
   
-  dashboardSidebar(width = 180,tags$head(tags$style(HTML('.content-wrapper { height: 1000px !important;}'))),
+  dashboardSidebar(width = 180,tags$head(tags$style(HTML('.content-wrapper { height: 1100px !important;}'))),
                    sidebarMenu(
         menuItem("Live Data", tabName = "dashboard", icon = icon("dashboard"),
                  menuSubItem(selectInput("country","Select a Country",choices=country_names),tabName = "dashboard")),
@@ -155,17 +155,21 @@ ui <- dashboardPage(
             
       tabItem(
         tabName = "trend",
-        h2("Historic Data"),
-        h3("Curated Data as of ", paste(last),"reported by ",tags$a("John Hopkins CSSE", href="https://www.kaggle.com/gpreda/coronavirus-2019ncov/data")),
+        #h2("Historic Data Trends",align="center"),
+        tags$p(style = "font-size: 30px; 
+                        font-family: 'Palatino Linotype', 'Book Antiqua', 'Palatino', 'serif';
+                        text-align:center;", 
+               "Historic Data Trends"),
+        h5("Curated Data as of ", paste(last),"reported by ",tags$a("John Hopkins CSSE", href="https://www.kaggle.com/gpreda/coronavirus-2019ncov/data")),
         #global trends plots
         fluidRow(box(strong("Global Percentage Change"),align="center",style = 'color:black',solidHeader = TRUE,
-                     #background = "light-blue",
+                     
                      plotlyOutput("plot2",height = 300,width=375),width=4),
                  box(strong("Global Active Cases"),align="center",style = 'color:black',solidHeader = TRUE,
-                     #background = "light-blue",
+               
                      plotlyOutput("plot3",height = 300,width=375),width=4),
                  box(strong("Global Recovery vs Death"),align="center",style = 'color:black',solidHeader = TRUE,
-                     #background = "light-blue",
+             
                      plotlyOutput("plot4",height = 300,width=385),width=4)
         ),
         #global averages info boxes
@@ -176,13 +180,13 @@ ui <- dashboardPage(
         
         #by country plots
         fluidRow(box(strong("Percentage Change"),align="center",style = 'color:black',solidHeader = TRUE,
-                     #background = "light-blue",
+                   
                      plotlyOutput("country_plot2",height = 300,width=375),width=4),
                  box(strong("Active Cases"),align="center",style = 'color:black',solidHeader = TRUE,
-                     #background = "light-blue",
+                    
                      plotlyOutput("country_plot3",height = 300,width=375),width=4),
                  box(strong("Recovery vs Death"),align="center",style = 'color:black',solidHeader = TRUE,
-                     #background = "light-blue",
+                    
                      plotlyOutput("country_plot4",height = 300,width=385),width=4)
                  
                  
@@ -192,16 +196,31 @@ ui <- dashboardPage(
       ),
       tabItem(
         tabName ="maps",
-        h2("Geographic Information"), 
-        h3("Curated Data as of ", paste(last),"reported by John Hopkins CSSE" ),
+        #h2("Heat Map",align="center"), 
+        tags$p(style = "font-size: 30px; 
+                        font-family: 'Palatino Linotype', 'Book Antiqua', 'Palatino', 'serif';
+                        text-align:center;", 
+               "Geographic Information"),
+        h5("Curated Data as of ", paste(last),"reported by ",tags$a("John Hopkins CSSE", href="https://www.kaggle.com/gpreda/coronavirus-2019ncov/data")),
         box("Global Stats",style = 'color:black',solidHeader = TRUE,
                     width = 3),
-        box("Global Heat Map",style = 'color:black',solidHeader = TRUE,
+         box("Global Heat Map",style = 'color:black',solidHeader = TRUE,
             width = 9,
             leafletOutput("global_heat",width='100%')),
-        box("Country Heat Map",style = 'color:black',solidHeader = TRUE,
+        box("Country Heat Map ",style = 'color:black',solidHeader = TRUE,
             width = 12,
-            leafletOutput("country_heat",width='100%'))
+            leafletOutput("country_heat",width='100%')),
+       
+        #h2("Geographic Information"), 
+        #h3("Curated Data as of ", paste(last),"reported by John Hopkins CSSE" ),
+       # box("Global Stats",style = 'color:black',solidHeader = TRUE,
+                    #width = 3),
+        #box("Global Heat Map",style = 'color:black',solidHeader = TRUE,
+            #width = 9,
+            #leafletOutput("global_heat",width='100%')),
+        #box("Country Heat Map",style = 'color:black',solidHeader = TRUE,
+            #width = 12,
+            #leafletOutput("country_heat",width='100%'))
         
       ),
           
@@ -209,17 +228,42 @@ ui <- dashboardPage(
       tabItem(
         tabName = "about",
         wellPanel(
-          h3(strong("About COVID-19")),
+          h3(strong("About COVID-19 Dashboard")),
+          tags$ul(
+            p("The dashboard aims to provide a representative visualization of live, up-to-date data, sourced from an API, and historic trends, 
+            contributed by John Hopkin's CSSE"),
+            tags$li(
+              "Live Data:
+              On the landing page, you will find country-specefic statistics on confirmed,recovered,deaths, and active cases.
+              To better understanding the magnitude of these numbers on a provincial basis, there is a bar plot and data table showing exactly where these numbers
+              are seen growing."),
+            br(),
+            tags$li(
+              "Trends:
+              We show how the trends have been growing over time for percentage changes, active cases, and a comparison for recoveries versus
+              death. The first row presents the plots for global data and below are the plots for the specefic countries."
+              ),
+            br(),
+            tags$li(
+              "Heat Map:
+              Based on geo-coordinates for each reported location, we plot its location on the map and provide cluster objects to show the concentration
+              of the spread."
+            )
+             ),
           hr()),
         wellPanel(
-          h4(strong("Contributors: Grant Smith, Jaymie Tam, Christopher Ton")),
-          hr()),
+          h4(strong("Contributors: Grant Smith, Jaymie Tam, Christopher Ton"))),
         wellPanel(
           h4(strong("References")),
           p("RapidAPI", tags$a(href = "https://rapidapi.com/KishCom/api/covid-19-coronavirus-statistics?endpoint=apiendpoint_53587227-476d-4279-8f1d-4884e60d1db7", "COVID-19 Coronavirus Statistics"),"(last updated: 14 days ago)"),
           p("Kaggle", tags$a(href = "https://www.kaggle.com/gpreda/coronavirus-2019ncov/data", "Coronavirus 2019-nCoV"),"(Updated almost daily)"),
           h4("Please visit our ",tags$a(href = "#", "github"), "link to see our project. Thanks for visiting!!"),
           hr()
+        ),
+        wellPanel(
+          h4("For more information, please visit the resources below for guidelines and recommendations!"),
+          p(tags$a(href = "https://www.cdc.gov/coronavirus/2019-ncov/index.html", "Center for Disease Control and Prevention")),
+          p( tags$a(href = "https://www.who.int/", "World Health Organization"))
         )
       )
     )
