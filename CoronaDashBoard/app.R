@@ -228,7 +228,7 @@ server <- function(input, output) {
   stop_for_status(corona_api2)
   json2 <- content(corona_api2, as = "text", encoding = "UTF-8")
   
-  api_data2 <- fromJSON(json)
+  api_data2 <- fromJSON(json2)
   
   api_data2 <- api_data2$data$covid19Stats
   api_data2 <- api_data2 %>% mutate(total = confirmed - deaths - recovered) 
@@ -236,22 +236,7 @@ server <- function(input, output) {
   })
   
   
-  
-  api_all<-reactive({corona_api <- GET(
-    url = "https://covid-19-coronavirus-statistics.p.rapidapi.com/v1/stats",
-    add_headers("X-RapidApi-Key" = paste(Sys.getenv("Rapid_KEY")))
-  )
-  stop_for_status(corona_api)
-  json <- content(corona_api, as = "text", encoding = "UTF-8")
-  
-  api_data <- fromJSON(json)
-  
-  api_data <- api_data$data$covid19Stats
-  api_data <- api_data %>% mutate(total = confirmed - deaths - recovered) 
-  
-  })
-  
-  
+
   api_by_province <- reactive({
     
     api_data_byProvince <- api() %>%
@@ -311,9 +296,6 @@ server <- function(input, output) {
     
   })
   
-  # output$dataTable <- {renderDataTable(api()[-3:-5],options=
-  #                                          list(lengthMenu=c(10,15),
-  #                                               scrollX=TRUE))}
   
   output$dataTable <- renderReactable({
     reactable(api()[-3:-5] %>% arrange(desc(confirmed)),
