@@ -45,10 +45,6 @@ all_count <- all_data %>%  group_by(Date) %>%
 all_count<-all_count %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed) %>% 
   head(59) #some bug that returns odd days, but its it correct up to the 59th row
 
-
-
-
-
 US_data <- all_data %>%
   filter(Country == "US") %>%
   group_by(Date) %>%
@@ -63,19 +59,74 @@ US_stats <- US_data %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) 
 
 # Define UI-----------------------------------------------------
 ui <- dashboardPage(
-  dashboardHeader(title = "COVID-19 Tracker",titleWidth = 180),
+
+  
+    dashboardHeader(title = "COVID-19 Tracker",titleWidth = 180),
   
   dashboardSidebar(width = 180,tags$head(tags$style(HTML('.content-wrapper { height: 1000px !important;}'))),
                    sidebarMenu(
-                     menuItem("Live Data", tabName = "live", icon = icon("dashboard"),
-                              menuSubItem(selectInput("country","Select a Country",choices=country_names),tabName = "live")),
-                     menuItem("Trends", icon = icon("chart-area"), tabName = "trend",
-                              menuSubItem(selectInput("country2","Select a Country",choices=trend_country),tabName = "trend")),
-                     menuItem("Global Map",icon = icon("map"),tabName="maps",
-                              menuSubItem(selectInput("country3","Select a Country",choices=trend_country),tabName = "maps")),
-                     menuItem("About",tabName = "about")
-                  
-
+        menuItem("Live Data", tabName = "dashboard", icon = icon("dashboard"),
+                 menuSubItem(selectInput("country","Select a Country",choices=country_names),tabName = "dashboard")),
+        menuItem("Trends", icon = icon("chart-area"), tabName = "trends",
+                 menuSubItem(selectInput("country2","Select a Country",choices=trend_country),tabName = "trends")),
+        menuItem("Maps",icon = icon("map"),tabName="maps",
+                 menuSubItem(selectInput("country3","Select a Country",choices=trend_country),tabName = "maps")),
+        menuItem("About",tabName = "about")
+                 
+        
+    )),
+    dashboardBody(
+      tags$head(
+        tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
+      ),
+        tabItems(
+            tabItem(tabName = "dashboard",
+                    fluidRow(
+                        infoBoxOutput("ConfirmedCases",width = 3),
+                        infoBoxOutput("Recoveries",width=3),
+                        infoBoxOutput("Mortalities",width=3),
+                        infoBoxOutput("deathRatio",width=3),
+                        box("Cases by Province",align="center",solidHeader = TRUE,
+                            helpText("Due to reporting restrictions
+                                 not all countries have meaningful provincial data."),
+                            helpText("You can also remove 'trace 0' to see a better represenation."),
+                            background = "black", width=7,
+                            plotlyOutput("plot1",height = 465,width=700)),
+                        box(solidHeader = TRUE,strong("Please Note: Not all locations have City data"),
+                            reactableOutput("dataTable"),width=5)
+                        
+                    )
+            ),
+            tabItem(
+                tabName = "trends",
+                h2("Historic Data"),
+                h3("Curated Data as of ", paste(last),"reported by John Hopkins CSSE" ),
+                #global trends plots
+                fluidRow(box(strong("Global Percent Change"),align="center",style = 'color:black',solidHeader = TRUE,
+                             background = "light-blue",
+                             plotlyOutput("plot2",height = 300,width=375),width=4),
+                         box(strong("Global Count"),align="center",style = 'color:black',solidHeader = TRUE,
+                             background = "light-blue",
+                             plotlyOutput("plot3",height = 300,width=375),width=4),
+                         box(strong("Global Recovery vs Death"),align="center",style = 'color:black',solidHeader = TRUE,
+                             background = "light-blue",
+                             plotlyOutput("plot4",height = 300,width=385),width=4)
+                ),
+                #global averages info boxes
+                fluidRow(infoBoxOutput("avgConf",width=4),
+                         infoBoxOutput("avgRecovered",width = 4),
+                         infoBoxOutput("avgDeaths",width = 4)),
+                
+                #by country plots
+                fluidRow(box(strong("Country Change"),align="center",style = 'color:black',solidHeader = TRUE,
+                             background = "light-blue",
+                             plotlyOutput("country_plot2",height = 300,width=375),width=4),
+                         box(strong("Country Count"),align="center",style = 'color:black',solidHeader = TRUE,
+                             background = "light-blue",
+                             plotlyOutput("country_plot3",height = 300,width=375),width=4),
+                         box(strong("Country Recovery vs Death"),align="center",style = 'color:black',solidHeader = TRUE,
+                             background = "light-blue",
+                             plotlyOutput("country_plot4",height = 300,width=385),width=4)
                      
                      
                    )),
@@ -99,8 +150,9 @@ ui <- dashboardPage(
                 box(solidHeader = TRUE,strong("Please Note: Not all locations have City data"),
                     reactableOutput("dataTable"),width=5)
                 
-              )
-      ),
+
+            ),
+            
       tabItem(
         tabName = "trend",
         h2("Historic Data"),
@@ -120,6 +172,7 @@ ui <- dashboardPage(
         fluidRow(infoBoxOutput("avgConf",width=4),
                  infoBoxOutput("avgRecovered",width = 4),
                  infoBoxOutput("avgDeaths",width = 4)),
+
         
         #by country plots
         fluidRow(box(strong("Percentage Change"),align="center",style = 'color:black',solidHeader = TRUE,
@@ -139,15 +192,20 @@ ui <- dashboardPage(
       ),
       tabItem(
         tabName ="maps",
-        h2("Global Heat Map"), 
+        h2("Geographic Information"), 
         h3("Curated Data as of ", paste(last),"reported by John Hopkins CSSE" ),
-        box("Heat Map",style = 'color:black',solidHeader = TRUE,
+        box("Global Stats",style = 'color:black',solidHeader = TRUE,
+                    width = 3),
+        box("Global Heat Map",style = 'color:black',solidHeader = TRUE,
+            width = 9,
+            leafletOutput("global_heat",width='100%')),
+        box("Country Heat Map",style = 'color:black',solidHeader = TRUE,
             width = 12,
-            leafletOutput("country_heat",width='100%')),
-        box("Heat Map",style = 'color:black',solidHeader = TRUE,
-            width = 12,
-            leafletOutput("global_heat",width='100%'))
+            leafletOutput("country_heat",width='100%'))
+        
       ),
+          
+      #about tab 
       tabItem(
         tabName = "about",
         wellPanel(
@@ -207,6 +265,7 @@ server <- function(input, output) {
                 Deaths = sum(Deaths), 
                 Total = sum(Total))  
     
+
     data_byCountry<-data_byCountry %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)
   })
   
@@ -498,7 +557,7 @@ server <- function(input, output) {
   })
   
   
-  
+ 
 }
 
 #-------------------------------------------------------------------------------------------------------
