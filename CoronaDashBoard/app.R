@@ -142,16 +142,16 @@ ui <- dashboardPage(
         h2("Mapping COVID-19"), 
         h3("Curated Data as of ", paste(last),"reported by John Hopkins CSSE" ),
         fluidRow(
-          box("Heat Map",style = 'color:black',solidHeader = TRUE,
-                     width = 7,
+          box("Global Hotspots",style = 'color:black',solidHeader = TRUE,
+                     width = 9,
                      leafletOutput("global_heat",width='100%')),
-          
-          column(h4("Stats not representative of live data"),width=5,infoBoxOutput("most_confirmed",width=6)),
-          column(width=5,infoBoxOutput("most_recovered",width=6)),
-          column(width=5,infoBoxOutput("most_deaths",width=6))
+          column(width=3,h3(strong("Countries with the Most:"))),
+          column(width=3,infoBoxOutput("most_confirmed",width=11)),
+          column(width=3,infoBoxOutput("most_recovered",width=11)),
+          column(width=3,infoBoxOutput("most_deaths",width=11))
           ),
         
-        box("Country Heat Map",style = 'color:black',solidHeader = TRUE,
+        box("Localized Heat Map",style = 'color:black',solidHeader = TRUE,
             width = 12,
             leafletOutput("country_heat",width='100%'))
       ),
@@ -196,6 +196,24 @@ server <- function(input, output) {
   
   })
   
+  api2<-reactive({corona_api2 <- GET(
+    url = "https://covid-19-coronavirus-statistics.p.rapidapi.com/v1/stats",
+    add_headers("X-RapidApi-Key" = paste(Sys.getenv("Rapid_KEY"))),
+    query = list(
+      country = ""
+    )
+  )
+  stop_for_status(corona_api2)
+  json2 <- content(corona_api2, as = "text", encoding = "UTF-8")
+  
+  api_data2 <- fromJSON(json)
+  
+  api_data2 <- api_data2$data$covid19Stats
+  api_data2 <- api_data2 %>% mutate(total = confirmed - deaths - recovered) 
+  
+  })
+  
+  
   
   api_by_province <- reactive({
     
@@ -204,14 +222,8 @@ server <- function(input, output) {
       summarise(total = sum(total))
   }) 
   
-  api_max <-reactive({
-    api() %>%  group_by(country) %>% 
-      summarise(most_recovered=sum(recovered),
-      most_confirmed=sum(confirmed),
-      most_deaths=sum(deaths))
-      
-    
-  })
+
+  
   
   #by country
   data_by_country <- reactive({
@@ -420,28 +432,41 @@ server <- function(input, output) {
   
   output$most_confirmed <- renderInfoBox({
     
-    req(api_max())
-    infoBox("Most Confirmed Cases",
-            color="yellow",fill=TRUE,icon=icon("notes-medical"),width=4, 
-            api_max() %>% arrange(desc(most_deaths)) %>% select(country) %>% slice(1) %>% pull(country))
-    
-  })
+    infoBox(tags$p(style = "font-size: 12px; font-family: 'Palatino Linotype', 'Book Antiqua', 'Palatino', 'serif';", "Confirmed Cases"),
+            api2() %>% group_by(country) %>% 
+              summarise(most_confirmed=sum(confirmed))
+            %>% arrange(desc(most_confirmed)) 
+            %>% slice(1) %>% pull(country),
+              color="yellow",fill=TRUE,icon=icon("notes-medical"),width=4)
+                    
+                                                     
+      })
   
   
   output$most_recovered <- renderInfoBox({
     
-    req(api())
     
-    infoBox("Most Recoveries",
-            color="green",fill=TRUE,icon=icon("star-of-life"),width=4,
-            api_max() %>% arrange(desc(most_recovered)) %>% select(country) %>% slice(1) %>% pull(country))
+    infoBox(tags$p(style = "font-size: 12px; font-family: 'Palatino Linotype', 'Book Antiqua', 'Palatino', 'serif';", "Recoveries"),
+            api2() %>% group_by(country) %>% 
+              summarise(most_recovered=sum(recovered))
+                        %>% arrange(desc(most_recovered)) 
+                        %>% slice(1) %>% pull(country),
+    color="green",fill=TRUE,icon=icon("star-of-life"),width=4)
+            
             
   })
   
+  
   output$most_deaths <- renderInfoBox({
-    infoBox("Most Deaths",
-            color="red",fill=TRUE,icon=icon("diagnoses"),width=4,
-            api_max() %>% arrange(desc(most_deaths)) %>% select(country) %>% slice(1) %>% pull(country))
+    
+    
+    infoBox(tags$p(style = "font-size: 12px; font-family: 'Palatino Linotype', 'Book Antiqua', 'Palatino', 'serif';", "Deaths"),
+            api2() %>% group_by(country) %>% 
+              summarise(most_deaths=sum(deaths))
+            %>% arrange(desc(most_deaths)) 
+            %>% slice(1) %>% pull(country),
+            color="red",fill=TRUE,icon=icon("diagnoses"),width=4,)
+            
             
   })
   
