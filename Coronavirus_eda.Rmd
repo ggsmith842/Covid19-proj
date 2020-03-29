@@ -1,6 +1,6 @@
 ---
 title: "COVID-19: Key Insights"
-author: "Grant Smith & Jaymie Tam"
+author: "Grant Smith"
 date: "3/21/2020"
 output: html_document
 ---
@@ -45,58 +45,44 @@ api_data_byProvince <- api_data %>%
   group_by(province) %>%
   summarise(total = sum(total))
 
-api_data_byProvince
 ```
 
-#### Current Counts (US)
+### **Global Situation**
 
-```{r,message=FALSE,warning=FALSE}
-api_data_byProvince %>% plot_ly(x = ~total, y = ~province, color = ~province)
-```
-
-```{r}
-api_data %>% summarise(total_confUS = sum(total))
-```
-
-```{r}
-api_data[-3:-5] %>% names()
-
-api_data[-3:-5] %>% arrange(desc(deaths)) %>% datatable() 
-```
-
+ 
 ```{r}
 api_MAX<-api_data %>% group_by(country) %>% summarise(most_confirmed=sum(confirmed),most_deaths=sum(deaths),most_rec=sum(recovered)) 
+max_recovered<-api_MAX %>% arrange(desc(most_rec)) %>% slice(1) %>% pull(country)
+max_confirmed <-api_MAX %>% arrange(desc(most_confirmed)) %>% slice(1) %>% pull(country)
+max_deaths<-api_MAX %>% arrange(desc(most_deaths)) %>% slice(1) %>% pull(country)
 
-api_MAX %>% arrange(desc(most_deaths)) %>% slice(1) %>% pull(country)
-          
+
+max_summary<-tibble(Confirmed=max_confirmed,Recoveries=max_recovered,Deaths=max_deaths)
+
 ```
 
+
+**The countries with the most cases by type**
+
+ * Most Confirmed: `r max_summary$Confirmed` <br>
+ * Most Recoveries: `r max_summary$Recoveries`<br>
+ * Most Deaths: `r max_summary$Deaths`
 
 <hr>
 
-## Data updated as of March 22
+#### Data updated as of March 28
 
 ```{r,warning=FALSE,message=FALSE}
 # Data downloaded/updates daily
 setwd("~/GitHub/Covid19-proj/Data")
-conf_dat <- read_csv("time_series-ncov-Confirmed.csv")
-death_dat <- read_csv("time_series-ncov-Deaths.csv")
-recvd_dat <- read_csv("time_series-ncov-Recovered.csv")
 all_data <- read_csv("covid-19-all.csv")
 
-comm<-"China"
 all_data = all_data %>% rename(Country = `Country/Region`)
-data_by_country <- all_data %>% filter(Country==paste(comm)) %>% group_by(Date)  %>%
-      summarise(Confirmed = sum(Confirmed), 
-                Recovered = sum(Recovered), 
-                Deaths = sum(Deaths), 
-                Total = sum(Total))  
 
-all_data
 ```
 
 
-```{r}
+```{r,message=FALSE}
 #Global DATA
 all_data<-all_data %>% replace_na(list(Confirmed=0,Recovered=0,Deaths=0)) %>%  mutate(Total = Confirmed - Recovered - Deaths)
 
@@ -108,128 +94,68 @@ all_count %>%
   plot_ly(x = ~Date, y = ~Total, mode = "lines", line = list(color = "green"), fill = "tonexty", fillcolor = "lightgreen") %>%
   layout(
     title = "Global Coronavirus Active Cases")
+```
 
+```{r,message=FALSE}
 fig1<-all_count %>%
   plot_ly(x = ~Date, y = ~all_count$Recovered, mode = "lines",name='Recovered')
 
 fig1 %>% add_trace(x=~all_count$Date,y=~all_count$Deaths,name="Deaths",
-                   mode="lines",fill="tonexty") %>% add_trace(x = all_count~Date, y = ~all_count$Recovered, mode = "lines",name='Recovered',fill="tonexty")
+                   mode="lines",fill="tonexty") %>% add_trace(x = all_count~Date, y = ~all_count$Recovered, mode = "lines",name='Recovered',fill="tonexty") %>% layout(title="Recoveries vs Deaths Globally",xaxis=list(title="Date"),yaxis=list(title="Count"))
 
 ```
 
+<br>
 
-```{r}
-all_data
+#### Percent Change Globally
 
-all_data %>% group_by(Date,Country) %>% summarise(most_confirmed=sum(Confirmed),most_deaths=sum(Deaths),most_recovered=sum(Recovered)) %>% arrange(desc(most_deaths))
-```
+**Summary**
 
+ * The change in cofirmed cases spiked sharely on Jan 27 and there were additional spikes scattered up until Feb 1. <br>
+ * From Feb 1 to Feb 11 we saw a steady decrease in percent change of new cases.<br>
+ * On Feb 12 a 33% spike occured followed by a decline of less than 5% change from Feb 13 to March 9. <br>
+ * Since March 9 there has been a steady increse in global percent change.
 
-```{r}
-
-
-#OLD DATA
-#---------------------------------------------------------------------------------------
-# Global_Confirmed <- conf_dat %>%
-#     select(`Country/Region`, Date, Value, Lat, Long, `Province/State`) %>%
-#     slice(-1) %>%
-#     arrange(Date) %>%
-#     mutate(Date = ymd(Date))
-# Global_Deaths <- death_dat %>%
-#     select(`Country/Region`, Date, Value) %>%
-#     slice(-1) %>%
-#     arrange(Date) %>%
-#     mutate(Date = ymd(Date))
-# Global_Rcvd <- recvd_dat %>%
-#     select(`Country/Region`, Date, Value) %>%
-#     slice(-1) %>%
-#     arrange(Date) %>%
-#     mutate(Date = ymd(Date))
-# 
-# Global_dat <- bind_cols(Global_Confirmed, Global_Rcvd[, 3], Global_Deaths[, 3])
-# Global_byDay <- Global_dat %>%
-#     mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
-#     select(-3, -7, -8) %>%
-#     mutate(Total = Confirmed - Recovered - Deaths)
-# 
-# Global_count <- Global_byDay %>%
-#     group_by(Date) %>%
-#     summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
-
-#---------------------------------------------------------------
-
-# Global_Confirmed <- conf_dat %>%
-#   select(`Country/Region`, Date, Value, Lat, Long, `Province/State`) %>%
-#   slice(-1) %>%
-#   arrange(Date) %>%
-#   mutate(Date = ymd(Date))
-# Global_Deaths <- death_dat %>%
-#   select(`Country/Region`, Date, Value) %>%
-#   slice(-1) %>%
-#   arrange(Date) %>%
-#   mutate(Date = ymd(Date))
-# Global_Rcvd <- recvd_dat %>%
-#   select(`Country/Region`, Date, Value) %>%
-#   slice(-1) %>%
-#   arrange(Date) %>%
-#   mutate(Date = ymd(Date))
-# 
-# Global_dat <- bind_cols(Global_Confirmed, Global_Rcvd[, 3], Global_Deaths[, 3])
-# Global_byDay <- Global_dat %>%
-#   mutate(Confirmed = as.numeric(Value), Recovered = as.numeric(Value1), Deaths = as.numeric(Value2)) %>%
-#   select(-3, -7, -8) %>%
-#   mutate(Total = Confirmed - Recovered - Deaths)
-# 
-# Global_count <- Global_byDay %>%
-#   group_by(Date) %>%
-#   summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
-# 
-# 
-# Global_count %>%
-#   plot_ly(x = ~Date, y = ~Total, mode = "lines", line = list(color = "green"), fill = "tonexty", fillcolor = "lightgreen") %>%
-#   layout(
-#     title = "Global Coronavirus Active Cases"
-#   )
-
-```
-
-Global percent change
-```{r}
-all_count
-
+```{r,message=FALSE}
 all_count %>%  plot_ly(x = ~all_count$Date, y = ~all_count$`% change`, mode = "lines", line = list(color = "green"), fill = "tonexty", fillcolor = "lightgreen") %>%
   layout(
-    title = "Global Coronavirus % Change in Confirmed Sases"
-  )
+    title = "Global Coronavirus % Change in Confirmed Cases",xaxis=list(title="Date"),yaxis=list(title="% Change"))
+  
 ```
 
 
-Average change per day
+**Average change per day**
 ```{r}
+avg_confirmed<-all_count %>% transmute(diff=lead(Confirmed)-Confirmed) %>% summarise(avg=mean(diff,na.rm=TRUE))
+avg_recvd<-all_count %>% transmute(diff=lead(Recovered)-Recovered) %>% summarise(avg=mean(diff,na.rm=TRUE))  
+avg_deaths<-all_count %>% transmute(diff=lead(Deaths)-Deaths) %>% summarise(avg=mean(diff,na.rm=TRUE))
 
-all_count %>% transmute(diff=lead(Confirmed)-Confirmed) %>% summarise(avg=mean(diff,na.rm=TRUE))
-all_count %>% transmute(diff=lead(Recovered)-Recovered) %>% summarise(avg=mean(diff,na.rm=TRUE))  
-all_count %>% transmute(diff=lead(Deaths)-Deaths) %>% summarise(avg=mean(diff,na.rm=TRUE))
+tibble(Confirmed=avg_confirmed$avg,Recoveries=avg_recvd$avg,Deaths=avg_deaths$avg)
+
 ```
 
+<hr>
 
-
-#### United States
+### **United States**
 ```{r,message=FALSE,warning=FALSE}
 US_data <- all_data %>%
-  filter(`Country/Region` == "US") %>%
+  filter(Country == "US") %>%
   group_by(Date) %>%
   summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
 
 ```
 
 
-```{r}
+*Map is not accurate of current situation*
+*Please use shiny.io link for better geographic information*
+https://ggsmith842.shinyapps.io/CoronaDashBoard/
+
+```{r,warning=FALSE}
 # map
 library(leaflet.extras)
 US_dat_geo <- all_data %>%
-  filter(`Country/Region` == "US") %>%
-  group_by(`Province/State`)
+  filter(Country == "US") %>%
+  group_by('Province/State')
 
 leaflet(US_dat_geo) %>%
   setView(lng = -96.7265, lat = 38.5266, zoom = 4.4) %>%
@@ -241,8 +167,24 @@ leaflet(US_dat_geo) %>%
 
 ```
 
+#### Number of Cases by Location
 
-```{r}
+```{r,message=FALSE,warning=FALSE}
+api_data %>% filter(country=="US") %>% select(province,confirmed,recovered, deaths,total) %>% datatable()
+```
+<br>
+
+**Number of Cases Plot**
+
+* The below plot shows the active number of cases in the US by date. This number is the confirmed number of cases minus the number of recovered cases and cases resulting in 
+  death of the patient.
+  
+* The plot shows exponential growth in the number of cases as the only noticeable trend.
+
+* As of March 28, there are 118.4k active cases in the U.S.
+
+
+```{r,message=FALSE}
 US_data %>%
   plot_ly(x = ~Date, y = ~Total, mode = "lines", fill = "tonexty") %>%
   layout(
@@ -251,16 +193,9 @@ US_data %>%
 ```
 
 
-**Number of Cases Plot**
-
-* The above plot shows the active number of cases in the US by date. This number is the confirmed number of cases minus the number of recovered cases and cases resulting in 
-  death of the patient.
-  
-* The plot shows exponential growth in the number of cases as the only noticeable trend.
-
-* As of March 21, there are 25.2k active cases in the U.S.
-
 <br>
+
+#### Percent Change
 
 ```{r}
 # add percent change between days
@@ -268,7 +203,21 @@ US_stats <- US_data %>% mutate(`% change` = round(100 * (lead(Total) - Total) / 
 datatable(US_stats)
 ```
 
+
+
 <br>
+
+**Description of Percent Change plot**
+
+* The Percent Change plot shows the change in number of active cases from the date listed to the next day. A positive percent change indicates the number of active cases 
+  increased, while a negative percent change in dicates the number of active cases is lower than it was on the previous day. 
+
+* Unlike the case count, the percent changes shows a volatile trend with spikes scattered throughout. February 20 and January 25 are the largest spikes to date with a 150% increase. After the February 20 spike we 
+  see a steady increase in the percentage of active cases. This implies infection rates are higher than both recovery and mortality rates.
+
+* As of March 18, there have been mostly decreases in the percent change, implying the number of new cases in slowing.
+
+*ex.) On 2/08/2020 the number of active cases decreased from 11 to 8 as 3 patients had recovered from the virus. This resulted in a 27.3% decrease in active cases.*
 ```{r,warning=FALSE}
 US_stats %>%
   plot_ly(x = ~Date, y = ~`% change`, type = "scatter", mode = "markers", fill = "tonexty") %>%
@@ -276,25 +225,25 @@ US_stats %>%
 
 ```
 
-**Description of Percent Change plot**
 
-* The Percent Change plot shows the change in number of active cases from the date listed to the next day. A positive percent change indicates the number of active cases 
-  increased, while a negative percent change in dicates the number of active cases is lower than it was on the previous day. 
-
-* Unlike the case count, the percent changes show a relatively flat trend with mior spikes. February 23 is the largest spike to date with a 360% increase. After this spike we 
-  see a steady increase in the percentage of active cases. This implies infection rates are higher than both recovery and mortality rates.
-
-* As of March 18, there has been a decrease in the percent change, implying the number of new cases in slowing.
-
-*ex.) On 2/08/2020 the number of active cases decreased from 11 to 8 as 3 patients had recovered from the virus. This resulted in a 27.3% decrease in active cases.*
 
 
 <hr>
-#### Italy
+### **Italy**
+<br>
+**Number of Cases Plot**
+
+* The above plot shows the active number of cases in Italy by date. This number is the confirmed number of cases minus the number of recovered cases and cases resulting in 
+  death of the patient.
+  
+* The plot shows exponential growth in the number of cases as the only noticeable trend.
+
+* As of March 25, there are 57.5k active cases in Italy. 
+
 ```{r,warning=FALSE}
 
 Ita_data <- all_data %>%
-  filter(`Country/Region` == "Italy") %>%
+  filter(Country == "Italy") %>%
   group_by(Date) %>%
   summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
 
@@ -305,14 +254,7 @@ Ita_data %>%
   )
 ```
 
-**Number of Cases Plot**
-
-* The above plot shows the active number of cases in Italy by date. This number is the confirmed number of cases minus the number of recovered cases and cases resulting in 
-  death of the patient.
-  
-* The plot shows exponential growth in the number of cases as the only noticeable trend.
-
-* From March 11 March 12, there was no change in the number of cases reported. As of March 21, there are 42.7k active cases in Italy. 
+#### Percent Change
 
 <br>
 ```{r}
