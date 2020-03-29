@@ -1,6 +1,6 @@
 # Covid19-proj
 
-This project provides visualizations tracking the changing status of COVID-19 cases. Visualizations will include current case trends, overlay for different countries, and comparision to previous case rates in other similar infectious diseases
+This project provides visualizations tracking the changing status of COVID-19 cases. Visualizations will include current counts, relevent statistics on historic trends, and geovisualizations showing global and local hotspots.
 
  <hr>
  
@@ -18,25 +18,25 @@ This project provides visualizations tracking the changing status of COVID-19 ca
 
 *3. https://www.kaggle.com/gpreda/coronavirus-2019ncov/data*
 
-More to come.
+
 
 ## Inspiration
-How to better understand the magnitude of the growing numbers, convey findings in an illustrative manner and spread awareness.
+We wanted to better understand the magnitude of the growing number of COVID-19 cases and convey our findings in an illustrative manner to spread awareness.
 
 ## What it does
-Visualizes the number of active cases per country, per city (barplot,lineplot, heatmap)
+The *COVID-19 Tracker* dashboard visualizes the number of active cases using live data collected via API and historic time series data. The app complies this data in an easy to view format and calculated relative statistics as the situation changes (barplot,lineplot, heatmap).
 
-## How I built it
+## How we built it
 Using Rstudio, we embedded R code into ShinyDashboard framework, implementing customizations and user functions with HTML/CSS.
 
-## Challenges I ran into
-Find accurate, up-to-date data and presenting them properly, fact-checking interpretations at every step. The wrong analysis in this atmosphere can lead to very frightening findings.
+## Challenges we ran into
+Finding accurate, up-to-date data and presenting them properly proved difficult due to the nature rapidly changing situation surrounding COVID-19. Additionally, fact-checking interpretations at every step was tedious and time-consuming. But we knew incorrect analysis in this atmosphere could lead to worrisome findings, and we wanted our results to be as accurate as possible. 
 
-## Accomplishments that I'm proud of
-Strong collaboration, work-ethic, time management, application of classroom knowledge and skills
+## Accomplishments that we're proud of
+Strong collaboration, work-ethic, time management, application of classroom knowledge and skills. We also learned a lot about how Shiny Dashboard works and its applications in future projects. 
 
-## What I learned
-The multitude of the numbers growing exponentially.
+## What we learned
+The multitude of the numbers growing exponentially and dealing with live data that changes hourly is very different from working with static data that never changes. 
 
 ## What's next for COVID-19 Tracker
-With more data, forecast/project numbers. Find the peak and when it starts to plateau. These will provide hints or clues for the coming days, weeks and advise stakeholders on how to best prepare for the coming worst.
+With more data, we would like to forecast/project the number of new cases and then predict the peak infection number. This information will provide actionable insights for stakeholders on how to best prepare for the changing situation.
