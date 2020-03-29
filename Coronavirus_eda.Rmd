@@ -57,10 +57,18 @@ api_data_byProvince %>% plot_ly(x = ~total, y = ~province, color = ~province)
 ```{r}
 api_data %>% summarise(total_confUS = sum(total))
 ```
+
 ```{r}
 api_data[-3:-5] %>% names()
 
 api_data[-3:-5] %>% arrange(desc(deaths)) %>% datatable() 
+```
+
+```{r}
+api_MAX<-api_data %>% group_by(country) %>% summarise(most_confirmed=sum(confirmed),most_deaths=sum(deaths),most_rec=sum(recovered)) 
+
+api_MAX %>% arrange(desc(most_deaths)) %>% slice(1) %>% pull(country)
+          
 ```
 
 
@@ -83,8 +91,9 @@ data_by_country <- all_data %>% filter(Country==paste(comm)) %>% group_by(Date) 
                 Recovered = sum(Recovered), 
                 Deaths = sum(Deaths), 
                 Total = sum(Total))  
-```
 
+all_data
+```
 
 
 ```{r}
@@ -108,6 +117,12 @@ fig1 %>% add_trace(x=~all_count$Date,y=~all_count$Deaths,name="Deaths",
 
 ```
 
+
+```{r}
+all_data
+
+all_data %>% group_by(Date,Country) %>% summarise(most_confirmed=sum(Confirmed),most_deaths=sum(Deaths),most_recovered=sum(Recovered)) %>% arrange(desc(most_deaths))
+```
 
 
 ```{r}
