@@ -143,20 +143,28 @@ ui <- dashboardPage(
       ),
       tabItem(
         tabName ="maps",
+
         #h2("Heat Map",align="center"), 
         tags$p(style = "font-size: 30px; 
                         font-family: 'Palatino Linotype', 'Book Antiqua', 'Palatino', 'serif';
                         text-align:center;", 
-               "Geographic Information"),
+               "Geographic Information: Mapping COVID-19"),
         h5("Curated Data as of ", paste(last),"reported by ",tags$a("John Hopkins CSSE", href="https://www.kaggle.com/gpreda/coronavirus-2019ncov/data")),
-        infoBoxOutput("GlobalStats",width=3),
-        box("Global Heat Map",style = 'color:black',solidHeader = TRUE,
-            width = 9,
-            leafletOutput("global_heat",width='100%')),
-        box("Country Heat Map ",style = 'color:black',solidHeader = TRUE,
+        fluidRow(
+          box("Global Hotspots",style = 'color:black',solidHeader = TRUE,
+                     width = 9,
+                     leafletOutput("global_heat",width='100%')),
+          column(width=3,h3(strong("Countries with the Most:"))),
+          column(width=3,infoBoxOutput("most_confirmed",width=11)),
+          column(width=3,infoBoxOutput("most_recovered",width=11)),
+          column(width=3,infoBoxOutput("most_deaths",width=11))
+          ),
+        
+        box("Localized Heat Map",style = 'color:black',solidHeader = TRUE,
             width = 12,
             leafletOutput("country_heat",width='100%'))
       ),
+              
       tabItem(tabName = "about",
               wellPanel(
                 h3(strong("About COVID-19 Dashboard")),
@@ -196,6 +204,7 @@ ui <- dashboardPage(
                 p(tags$a(href = "https://www.cdc.gov/coronavirus/2019-ncov/index.html", "Center for Disease Control and Prevention")),
                 p( tags$a(href = "https://www.who.int/", "World Health Organization"))
               )
+
       )
     )
     
@@ -222,6 +231,24 @@ server <- function(input, output) {
   
   })
   
+  api2<-reactive({corona_api2 <- GET(
+    url = "https://covid-19-coronavirus-statistics.p.rapidapi.com/v1/stats",
+    add_headers("X-RapidApi-Key" = paste(Sys.getenv("Rapid_KEY"))),
+    query = list(
+      country = ""
+    )
+  )
+  stop_for_status(corona_api2)
+  json2 <- content(corona_api2, as = "text", encoding = "UTF-8")
+  
+  api_data2 <- fromJSON(json)
+  
+  api_data2 <- api_data2$data$covid19Stats
+  api_data2 <- api_data2 %>% mutate(total = confirmed - deaths - recovered) 
+  
+  })
+  
+  
   
   api_all<-reactive({corona_api <- GET(
     url = "https://covid-19-coronavirus-statistics.p.rapidapi.com/v1/stats",
@@ -243,7 +270,9 @@ server <- function(input, output) {
     api_data_byProvince <- api() %>%
       group_by(province) %>%
       summarise(total = sum(total))
-  })
+
+  }) 
+
   
 
   #by country
@@ -444,37 +473,59 @@ server <- function(input, output) {
   })
   
   # GLOBAL MAPS PAGE        
-  #--------------------------------------------------------------------------------------------------- 
+
+  #---------------------------------------------------------------------------------------------------    
+  
+  # api() %>%  group_by(country) %>% 
+  #   summarise(most_confirmed=sum(confirmed))
+  # %>% arrange(desc(most_confirmed)) %>% select(country)
+  # %>%  slice(1) %>% pull(country)
+  
+  output$most_confirmed <- renderInfoBox({
+    
+    infoBox(tags$p(style = "font-size: 12px; font-family: 'Palatino Linotype', 'Book Antiqua', 'Palatino', 'serif';", "Confirmed Cases"),
+            api2() %>% group_by(country) %>% 
+              summarise(most_confirmed=sum(confirmed))
+            %>% arrange(desc(most_confirmed)) 
+            %>% slice(1) %>% pull(country),
+              color="yellow",fill=TRUE,icon=icon("notes-medical"),width=4)
+                    
+                                                     
+      })
   
   
-  
-  output$GlobalStats <-renderInfoBox({
+  output$most_recovered <- renderInfoBox({
     
-    global_c = api_all() %>% summarise(sum(confirmed))
-    global_d = api_all() %>% summarise(sum(deaths))
-    global_r = api_all() %>% summarise(sum(recovered))
-    global_a = api_all() %>% summarise(sum(total))
     
-    most_c = api_all() %>% group_by(country) %>% summarise(con = sum(confirmed)) %>% arrange(desc(con))%>% slice(1) %>% pull(country)
-    most_r = api_all() %>% group_by(country) %>% summarise(r = sum(recovered)) %>% arrange(desc(r)) %>% slice(1) %>% pull(country)
-    most_d = api_all() %>% group_by(country) %>% summarise(d = sum(deaths)) %>% arrange(desc(d)) %>% slice(1) %>% pull(country)
-    
-    infoBox(tags$p(style = "font-size: 15px; font-family: 'Palatino Linotype', 'Book Antiqua', 'Palatino', 'serif';", "Overall"),
-            HTML(paste(strong("Coronavirus Cases:"),"</br>","• ",global_c,"</br>", 
-                       "Most Confirmed:",most_c ,"</br>","</br>",
-                       
-                  strong("Deaths:"),"</br>","• ",global_d,"</br>", 
-                  "Most Deaths:",most_d ,"</br>","</br>",
-                  
-                  strong("Recovered:"),"</br>","• ",global_r,"</br>", 
-                  "Most Recovered:",most_r ,"</br>","</br>",
-                  
-                  strong("Active Cases:"),"</br>","• ",global_a)),
-            color="yellow",fill=TRUE,icon=icon("notes-medical"),width=2)
+    infoBox(tags$p(style = "font-size: 12px; font-family: 'Palatino Linotype', 'Book Antiqua', 'Palatino', 'serif';", "Recoveries"),
+            api2() %>% group_by(country) %>% 
+              summarise(most_recovered=sum(recovered))
+                        %>% arrange(desc(most_recovered)) 
+                        %>% slice(1) %>% pull(country),
+    color="green",fill=TRUE,icon=icon("star-of-life"),width=4)
+            
+            
   })
- 
   
-   output$global_heat <- renderLeaflet({
+  
+  output$most_deaths <- renderInfoBox({
+    
+    
+    infoBox(tags$p(style = "font-size: 12px; font-family: 'Palatino Linotype', 'Book Antiqua', 'Palatino', 'serif';", "Deaths"),
+            api2() %>% group_by(country) %>% 
+              summarise(most_deaths=sum(deaths))
+            %>% arrange(desc(most_deaths)) 
+            %>% slice(1) %>% pull(country),
+            color="red",fill=TRUE,icon=icon("diagnoses"),width=4)
+            
+            
+  })
+  
+  
+  
+  
+  output$global_heat <- renderLeaflet({
+
     
     # GET WORLD DATA
     
