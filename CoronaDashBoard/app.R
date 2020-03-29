@@ -15,17 +15,21 @@ library(leaflet)
 library(leaflet.extras)
 library(reactable)
 library(shinythemes)
+library(repmis) 
 # Historical data----------------------------------------------
-#conf_dat <- read_csv("time_series-ncov-Confirmed.csv")
-#death_dat <- read_csv("time_series-ncov-Deaths.csv")
-#recvd_dat <- read_csv("time_series-ncov-Recovered.csv")
-all_data <- read_csv("covid-19-all.csv")
+
+#read data from link, will get working later
+#all_data <- paste("https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_daily_reports/",format(Sys.Date(),"%m-%d-%Y"),".csv") %>% gsub("\\s", "",.) 
+
+all_data <- read_csv("covid-19-all.csv") 
+
 country_names <-read_csv("api_names.csv")
 
 #NEW DATA from Kaggle
 #----------------------------------------------------------------
 
-all_data<-all_data %>% replace_na(list(Confirmed=0,Recovered=0,Deaths=0)) %>%  mutate(Total = Confirmed - Recovered - Deaths)
+all_data<-all_data %>% replace_na(list(Confirmed=0,Recovered=0,Deaths=0)) %>% 
+  mutate(Total = Confirmed - Recovered - Deaths)
 
 all_data = all_data %>% rename(Country = `Country/Region`)
 
@@ -38,7 +42,8 @@ last = all_data$Date %>% unique() %>% tail(1)
 #global
 all_count <- all_data %>%  group_by(Date) %>%
   summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
-all_count<-all_count %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)
+all_count<-all_count %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed) %>% 
+  head(59) #some bug that returns odd days, but its it correct up to the 59th row
 
 
 
@@ -59,14 +64,18 @@ US_stats <- US_data %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) 
 # Define UI-----------------------------------------------------
 ui <- dashboardPage(
   dashboardHeader(title = "COVID-19 Tracker",titleWidth = 180),
+  
   dashboardSidebar(width = 180,tags$head(tags$style(HTML('.content-wrapper { height: 1000px !important;}'))),
                    sidebarMenu(
-                     menuItem("Live Data", tabName = "dashboard", icon = icon("dashboard"),
-                              menuSubItem(selectInput("country","Select a Country",choices=country_names),tabName = "dashboard")),
-                     menuItem("Trends", icon = icon("chart-area"), tabName = "about",
-                              menuSubItem(selectInput("country2","Select a Country",choices=trend_country),tabName = "about")),
+                     menuItem("Live Data", tabName = "live", icon = icon("dashboard"),
+                              menuSubItem(selectInput("country","Select a Country",choices=country_names),tabName = "live")),
+                     menuItem("Trends", icon = icon("chart-area"), tabName = "trend",
+                              menuSubItem(selectInput("country2","Select a Country",choices=trend_country),tabName = "trend")),
                      menuItem("Global Map",icon = icon("map"),tabName="maps",
-                              menuSubItem(selectInput("country3","Select a Country",choices=trend_country),tabName = "maps"))
+                              menuSubItem(selectInput("country3","Select a Country",choices=trend_country),tabName = "maps")),
+                     menuItem("About",tabName = "about")
+                  
+
                      
                      
                    )),
@@ -75,7 +84,7 @@ ui <- dashboardPage(
       tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
     ),
     tabItems(
-      tabItem(tabName = "dashboard",
+      tabItem(tabName = "live",
               fluidRow(
                 infoBoxOutput("ConfirmedCases",width = 3),
                 infoBoxOutput("Recoveries",width=3),
@@ -85,48 +94,49 @@ ui <- dashboardPage(
                     helpText("Due to reporting restrictions
                                  not all countries have meaningful provincial data."),
                     helpText("You can also remove 'trace 0' to see a better represenation."),
-                    background = "black", width=7,
-                    plotlyOutput("plot1",height = 500,width=650)),
+                    width=7,
+                    plotlyOutput("plot1",height = 500,width=600)),
                 box(solidHeader = TRUE,strong("Please Note: Not all locations have City data"),
                     reactableOutput("dataTable"),width=5)
                 
               )
       ),
       tabItem(
-        tabName = "about",
+        tabName = "trend",
         h2("Historic Data"),
-        h3("Curated Data as of ", paste(last),"reported by John Hopkins CSSE" ),
+        h3("Curated Data as of ", paste(last),"reported by ",tags$a("John Hopkins CSSE", href="https://www.kaggle.com/gpreda/coronavirus-2019ncov/data")),
         #global trends plots
-        
-        box(h5("Global",align="center"),
-            #box(strong("Global Percent Change"),align="center",style = 'color:black',solidHeader = TRUE,
-            #background = "light-blue",
-            plotlyOutput("plot2",height = '30vh',width='100%'),
-            #box(strong("Global Count"),align="center",style = 'color:black',solidHeader = TRUE,
-            #background = "light-blue",
-            plotlyOutput("plot3",height = '30vh',width='100%'),
-            #box(strong("Global Recovery vs Death"),align="center",style = 'color:black',solidHeader = TRUE,
-            #background = "light-blue",
-            plotlyOutput("plot4",height = '30vh',width='100%')),
-        
+        fluidRow(box(strong("Global Percentage Change"),align="center",style = 'color:black',solidHeader = TRUE,
+                     #background = "light-blue",
+                     plotlyOutput("plot2",height = 300,width=375),width=4),
+                 box(strong("Global Active Cases"),align="center",style = 'color:black',solidHeader = TRUE,
+                     #background = "light-blue",
+                     plotlyOutput("plot3",height = 300,width=375),width=4),
+                 box(strong("Global Recovery vs Death"),align="center",style = 'color:black',solidHeader = TRUE,
+                     #background = "light-blue",
+                     plotlyOutput("plot4",height = 300,width=385),width=4)
+        ),
         #global averages info boxes
-        #infoBoxOutput("avgConf",width=4),
-        #infoBoxOutput("avgRecovered",width = 4),
-        #infoBoxOutput("avgDeaths",width = 4)),
+        fluidRow(infoBoxOutput("avgConf",width=4),
+                 infoBoxOutput("avgRecovered",width = 4),
+                 infoBoxOutput("avgDeaths",width = 4)),
         
         #by country plots
-        
-        box(h5("Selected Country",align="center"),
-            #box(strong("Country Change"),align="center",style = 'color:black',solidHeader = TRUE,
-            #background = "light-blue",
-            plotlyOutput("country_plot2",height = '30vh',width='100%'),
-            # box(strong("Country Count"),align="center",style = 'color:black',solidHeader = TRUE,
-            #background = "light-blue",
-            plotlyOutput("country_plot3",height = '30vh',width='100%'),
-            #box(strong("Country Recovery vs Death"),align="center",style = 'color:black',solidHeader = TRUE,
-            #background = "light-blue",
-            plotlyOutput("country_plot4",height = '30vh',width='100%')
-        )),
+        fluidRow(box(strong("Percentage Change"),align="center",style = 'color:black',solidHeader = TRUE,
+                     #background = "light-blue",
+                     plotlyOutput("country_plot2",height = 300,width=375),width=4),
+                 box(strong("Active Cases"),align="center",style = 'color:black',solidHeader = TRUE,
+                     #background = "light-blue",
+                     plotlyOutput("country_plot3",height = 300,width=375),width=4),
+                 box(strong("Recovery vs Death"),align="center",style = 'color:black',solidHeader = TRUE,
+                     #background = "light-blue",
+                     plotlyOutput("country_plot4",height = 300,width=385),width=4)
+                 
+                 
+                 
+                 
+        )
+      ),
       tabItem(
         tabName ="maps",
         h2("Global Heat Map"), 
@@ -137,6 +147,22 @@ ui <- dashboardPage(
         box("Heat Map",style = 'color:black',solidHeader = TRUE,
             width = 12,
             leafletOutput("global_heat",width='100%'))
+      ),
+      tabItem(
+        tabName = "about",
+        wellPanel(
+          h3(strong("About COVID-19")),
+          hr()),
+        wellPanel(
+          h4(strong("Contributors: Grant Smith, Jaymie Tam, Christopher Ton")),
+          hr()),
+        wellPanel(
+          h4(strong("References")),
+          p("RapidAPI", tags$a(href = "https://rapidapi.com/KishCom/api/covid-19-coronavirus-statistics?endpoint=apiendpoint_53587227-476d-4279-8f1d-4884e60d1db7", "COVID-19 Coronavirus Statistics"),"(last updated: 14 days ago)"),
+          p("Kaggle", tags$a(href = "https://www.kaggle.com/gpreda/coronavirus-2019ncov/data", "Coronavirus 2019-nCoV"),"(Updated almost daily)"),
+          h4("Please visit our ",tags$a(href = "#", "github"), "link to see our project. Thanks for visiting!!"),
+          hr()
+        )
       )
     )
     
@@ -188,22 +214,25 @@ server <- function(input, output) {
   #--------------------------------------------------------------------------------------------------------
   
   output$ConfirmedCases <-renderInfoBox({
-    infoBox(title="Confirmed Cases",sum(api()$confirmed),
+    infoBox(tags$p(style = "font-size: 15px; font-family: 'Palatino Linotype', 'Book Antiqua', 'Palatino', 'serif';", "Confirmed Cases"),
+            sum(api()$confirmed),
             color="yellow",fill=TRUE,icon=icon("notes-medical"),width=2)
   })
   
   output$Mortalities <-renderInfoBox({
-    infoBox("Mortalities",sum(api()$deaths),
+    infoBox(tags$p(style = "font-size: 15px;font-family: 'Palatino Linotype', 'Book Antiqua', 'Palatino', 'serif';", "Mortalities"),
+            sum(api()$deaths),
             color="red",fill=TRUE,icon=icon("diagnoses"),width=2)
   })
   
   output$Recoveries <-renderInfoBox({
-    infoBox("Recoveries",sum(api()$recovered),
+    infoBox(tags$p(style = "font-size: 15px;font-family: 'Palatino Linotype', 'Book Antiqua', 'Palatino', 'serif';", "Recoveries"),
+            sum(api()$recovered),
             color="green",fill=TRUE,icon=icon("star-of-life"),width=2)
   })
   
   output$deathRatio <-renderInfoBox({
-    infoBox("Mortality Rate",
+    infoBox(tags$p(style = "font-size: 15px;font-family: 'Palatino Linotype', 'Book Antiqua', 'Palatino', 'serif';", "Mortality Rate"),
             paste(round(sum(api()$deaths)/sum(api()$confirmed),4)*100,"%"),
             color="black",fill=TRUE,icon=icon('percentage'),width=2)
   })
@@ -225,7 +254,7 @@ server <- function(input, output) {
   output$dataTable <- renderReactable({
     reactable(api()[-3:-5] %>% arrange(desc(confirmed)),
               filterable = TRUE, searchable = TRUE, bordered = TRUE, striped = TRUE, highlight = TRUE,
-              showSortable = TRUE, defaultSortOrder = "desc", defaultPageSize = 10, showPageSizeOptions = TRUE, pageSizeOptions = c(25, 50, 75, 100, 200), 
+              showSortable = TRUE, defaultSortOrder = "desc", defaultPageSize = 10, showPageSizeOptions = TRUE, pageSizeOptions = c(15,30,45,60,75), 
               columns = list(
                 confirmed = colDef(filterable = FALSE,defaultSortOrder = "desc"),
                 deaths = colDef(filterable = FALSE, defaultSortOrder = "desc"),
@@ -244,9 +273,9 @@ server <- function(input, output) {
             line = list(color="darkblue"),
             fill = "tonexty",
             fillcolor = "lightblue") %>% 
-      layout(title = "Percentage Change over Time",
-             xaxis = list(title = "Date"),
-             yaxis = list(title = "Percentage Change"))
+      layout(
+        xaxis = list(title = "Date"),
+        yaxis = list(title = "Percentage Change")) %>% config(displayModeBar = F)
     
   })
   
@@ -257,9 +286,9 @@ server <- function(input, output) {
             line = list(color = "orange"), 
             fill = "tonexty", 
             fillcolor = "lightorange")%>% 
-      layout(title = "Global Count over Time",
-             xaxis = list(title = "Date"),
-             yaxis = list(title = "Global Count Total"))
+      layout(
+        xaxis = list(title = "Date"),
+        yaxis = list(title = "Global Count Total")) %>% config(displayModeBar = F)
     
   })
   
@@ -279,9 +308,9 @@ server <- function(input, output) {
                 name='Recovered',
                 fill="tonexty",
                 fillcolor='lightgreen') %>% 
-      layout(title = "Total vs. Deaths over Time",
-             xaxis = list(title = "Date"),
-             yaxis = list(title = "Global Count Total & Deaths"))
+      layout(
+        xaxis = list(title = "Date"),
+        yaxis = list(title = "Global Count Total & Deaths")) %>% config(displayModeBar = F)
   })
   
   #averages infoBoxes------------
@@ -321,9 +350,9 @@ server <- function(input, output) {
             line = list(color="darkblue"),
             fill = "tonexty",
             fillcolor = "lightblue") %>% 
-      layout(title = paste("Percentage Change in ",input$country2),
+      layout(title = paste(input$country2),
              xaxis = list(title = "Date"),
-             yaxis = list(title = "Percentage Change"))
+             yaxis = list(title = "Percentage Change")) %>% config(displayModeBar = F)
     
   })
   
@@ -337,9 +366,9 @@ server <- function(input, output) {
             line = list(color = "orange"), 
             fill = "tonexty", 
             fillcolor = "lightorange")%>% 
-      layout(title = paste("Active Cases in ",input$country2),
+      layout(title = paste(input$country2),
              xaxis = list(title = "Date"),
-             yaxis = list(title = "Global Count Total"))
+             yaxis = list(title = "Global Count Total")) %>% config(displayModeBar = F)
     
   })
   
@@ -361,9 +390,9 @@ server <- function(input, output) {
                 name='Recovered',
                 fill="tonexty",
                 fillcolor='lightgreen') %>% 
-      layout(title = paste("Recoveries vs. Deaths in ",input$country2),
+      layout(title = paste(input$country2),
              xaxis = list(title = "Date"),
-             yaxis = list(title = "Global Count Total & Deaths"))
+             yaxis = list(title = "Global Count Total & Deaths")) %>% config(displayModeBar = F)
   })
   
   # GLOBAL MAPS PAGE        
