@@ -38,7 +38,7 @@ api_data <- fromJSON(json)
 
 ```{r,message=FALSE}
 api_data <- api_data$data$covid19Stats
-api_data <- api_data %>% mutate(total = confirmed - deaths - recovered) 
+api_data <- api_data %>% mutate(total = confirmed - deaths - recovered) %>% rename("City/County"=city)
 
 
 api_data_byProvince <- api_data %>%

@@ -214,7 +214,7 @@ server <- function(input, output) {
   api_data <- fromJSON(json)
   
   api_data <- api_data$data$covid19Stats
-  api_data <- api_data %>% mutate(total = confirmed - deaths - recovered) 
+  api_data <- api_data %>% mutate(total = confirmed - deaths - recovered) %>% rename("City/County"=city)
   
   })
   
