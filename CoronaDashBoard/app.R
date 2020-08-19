@@ -42,22 +42,9 @@ last = all_data$Date %>% unique() %>% tail(1)
 #global
 all_count <- all_data %>%  group_by(Date) %>%
   summarise(Confirmed = sum(Confirmed), Recovered = sum(Recovered), Deaths = sum(Deaths), Total = sum(Total))
-all_count<-all_count %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed) %>% 
-  head(59) #some bug that returns odd days, but its it correct up to the 59th row
+all_count<-all_count %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)  
+# %>%  head(59) some bug that returns odd days, but its it correct up to the 59th row
 
-
-
-
-
-US_data <- all_data %>%
-  filter(Country == "US") %>%
-  group_by(Date) %>%
-  summarise(Confirmed = sum(Confirmed), 
-            Recovered = sum(Recovered), 
-            Deaths = sum(Deaths), 
-            Total = sum(Total))
-
-US_stats <- US_data %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)
 #------------------------------------------------------------
 
 
@@ -129,7 +116,7 @@ ui <- dashboardPage(
         fluidRow(box(strong("Percentage Change"),align="center",style = 'color:black',solidHeader = TRUE,
                      #background = "light-blue",
                      plotlyOutput("country_plot2",height = 300,width=375),width=4),
-                 box(strong("Active Cases"),align="center",style = 'color:black',solidHeader = TRUE,
+                 box(strong("Confirmed Cases"),align="center",style = 'color:black',solidHeader = TRUE,
                      #background = "light-blue",
                      plotlyOutput("country_plot3",height = 300,width=375),width=4),
                  box(strong("Recovery vs Death"),align="center",style = 'color:black',solidHeader = TRUE,
@@ -174,19 +161,19 @@ ui <- dashboardPage(
                   tags$li(
                     "Live Data:
               On the landing page, you will find country-specefic statistics on confirmed,recovered,deaths, and active cases.
-              To better understanding the magnitude of these numbers on a provincial basis, there is a bar plot and data table showing exactly where these numbers
+              To better understand the magnitude of these numbers on a provincial basis, there is a bar plot and data table showing exactly where these numbers
               are seen growing."),
                   br(),
                   tags$li(
                     "Trends:
-              We show how the trends have been growing over time for percentage changes, active cases, and a comparison for recoveries versus
-              death. The first row presents the plots for global data and below are the plots for the specefic countries."
+              We show how the trends over time for percentage changes, active cases, and a comparison for recoveries versus
+              mortalities. The first row presents the plots for global data. The bottom row contains plots for specefic countries."
                   ),
                   br(),
                   tags$li(
                     "Heat Map:
-              Based on geo-coordinates for each reported location, we plot its location on the map and provide cluster objects to show the concentration
-              of the spread."
+              Based on the coordinates for each reported location, we plot its postition on the map and provide cluster objects to show the concentration
+              of the COVID-19 spread."
                   )
                 ),
                 hr()),
@@ -226,9 +213,8 @@ server <- function(input, output) {
   
   api_data <- fromJSON(json)
   
-  api_data <- api_data$data$covid19Stats
-  api_data <- api_data %>% mutate(total = confirmed - deaths - recovered) 
-  
+  api_data <- api_data$data$covid19Stats %>%  replace_na(list(confirmed=0,recovered=0,deaths=0))
+  api_data <- api_data  %>% rename("City/County"=city) 
   })
   
   api2<-reactive({corona_api2 <- GET(
@@ -241,35 +227,20 @@ server <- function(input, output) {
   stop_for_status(corona_api2)
   json2 <- content(corona_api2, as = "text", encoding = "UTF-8")
   
-  api_data2 <- fromJSON(json)
+  api_data2 <- fromJSON(json2)
   
   api_data2 <- api_data2$data$covid19Stats
-  api_data2 <- api_data2 %>% mutate(total = confirmed - deaths - recovered) 
+  api_data2 <- api_data2 #%>% mutate(total = confirmed - deaths - recovered) 
   
   })
   
   
-  
-  api_all<-reactive({corona_api <- GET(
-    url = "https://covid-19-coronavirus-statistics.p.rapidapi.com/v1/stats",
-    add_headers("X-RapidApi-Key" = paste(Sys.getenv("Rapid_KEY")))
-  )
-  stop_for_status(corona_api)
-  json <- content(corona_api, as = "text", encoding = "UTF-8")
-  
-  api_data <- fromJSON(json)
-  
-  api_data <- api_data$data$covid19Stats
-  api_data <- api_data %>% mutate(total = confirmed - deaths - recovered) 
-  
-  })
-  
-  
+
   api_by_province <- reactive({
     
     api_data_byProvince <- api() %>%
       group_by(province) %>%
-      summarise(total = sum(total))
+      summarise(confirmed = sum(confirmed))
 
   }) 
 
@@ -282,7 +253,7 @@ server <- function(input, output) {
       summarise(Confirmed = sum(Confirmed), 
                 Recovered = sum(Recovered), 
                 Deaths = sum(Deaths), 
-                Total = sum(Total))  
+                )  
     
     data_byCountry<-data_byCountry %>% mutate(`% change` = 100 * (lead(Confirmed) - Confirmed) / Confirmed)
   })
@@ -316,7 +287,7 @@ server <- function(input, output) {
   
   
   output$plot1 <-renderPlotly({
-    plot_ly(api_by_province(),x=api_by_province()$total,
+    plot_ly(api_by_province(),x=api_by_province()$confirmed,
             y=~api_by_province()$province,
             color=~api_by_province()$province) %>% 
       layout(xaxis=list(title="Total Active Cases"),
@@ -324,9 +295,6 @@ server <- function(input, output) {
     
   })
   
-  # output$dataTable <- {renderDataTable(api()[-3:-5],options=
-  #                                          list(lengthMenu=c(10,15),
-  #                                               scrollX=TRUE))}
   
   output$dataTable <- renderReactable({
     reactable(api()[-3:-5] %>% arrange(desc(confirmed)),
@@ -438,7 +406,7 @@ server <- function(input, output) {
     
     req(data_by_country())
     
-    plot_ly(x = ~data_by_country()$Date, y = ~data_by_country()$Total,
+    plot_ly(x = ~data_by_country()$Date, y = ~data_by_country()$Confirmed,
             mode = "lines", 
             line = list(color = "orange"), 
             fill = "tonexty", 
@@ -475,12 +443,7 @@ server <- function(input, output) {
   # GLOBAL MAPS PAGE        
 
   #---------------------------------------------------------------------------------------------------    
-  
-  # api() %>%  group_by(country) %>% 
-  #   summarise(most_confirmed=sum(confirmed))
-  # %>% arrange(desc(most_confirmed)) %>% select(country)
-  # %>%  slice(1) %>% pull(country)
-  
+ 
   output$most_confirmed <- renderInfoBox({
     
     infoBox(tags$p(style = "font-size: 12px; font-family: 'Palatino Linotype', 'Book Antiqua', 'Palatino', 'serif';", "Confirmed Cases"),
@@ -547,7 +510,7 @@ server <- function(input, output) {
     geo$name[geo$name=="Congo [Republic]"] = "Congo (Brazzaville)" 
     geo$name[geo$name=="Congo [DRC]"] = "Congo (Kinshasa)" 
     geo$name[geo$name=="Taiwan"] = "Taiwan*"
-    geo$name[geo$name=="Côte d'Ivoire"] = "Cote d'Ivoire"
+    geo$name[geo$name=="CÃ´te d'Ivoire"] = "Cote d'Ivoire"
     geo$name[geo$name=="South Korea"] = "Korea, South"
     
     countries = unique(world_api_data$data$covid19Stats$country) %>% tibble(name = .)
